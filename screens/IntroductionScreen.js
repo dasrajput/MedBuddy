@@ -148,33 +148,35 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: 20,
     justifyContent: 'center',
-    backgroundColor: '#f5f5f5', // Light background
+    backgroundColor: '#121212', // Dark background
   },
   title: {
     fontSize: 26,
     fontWeight: 'bold',
     marginBottom: 20,
     textAlign: 'center',
-    color: '#333', // Dark color for title
+    color: '#FFFFFF', // White color for title
   },
   formBox: {
     width: '100%',
-    backgroundColor: '#fff',
+    backgroundColor: '#1E1E1E', // Darker background for form
     padding: 20,
     borderRadius: 10,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.3,
     shadowRadius: 5,
-    elevation: 5, // For Android shadow
+    elevation: 5,
     marginBottom: 20,
   },
   input: {
     borderWidth: 1,
-    borderColor: '#ccc',
+    borderColor: '#4CAF50', // Green border color
     padding: 10,
     marginBottom: 15,
     borderRadius: 5,
+    backgroundColor: '#1E1E1E', // Darker input background
+    color: '#FFFFFF', // White text color
   },
 });
 

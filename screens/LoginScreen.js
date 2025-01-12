@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { TextInput, Button, View, Text, StyleSheet } from 'react-native';
+import { TextInput, View, Text, StyleSheet, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { signIn } from '../services/firebaseService';
 import { useNavigation } from '@react-navigation/native'; // For navigation
 import { CommonActions } from '@react-navigation/native';
@@ -10,6 +10,7 @@ const LoginScreen = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
   
   const navigation = useNavigation(); // For navigating after login
 
@@ -19,20 +20,19 @@ const LoginScreen = () => {
       setError('Please enter both email and password');
       return;
     }
-  
+
+    setLoading(true); // Start loading
     try {
       // Attempt to log in the user
       const user = await signIn(email, password);
-  
+
       if (user && user.uid) {
-        //console.log('User logged in:', user);
-  
         // Clear any previous errors
         setError('');
-  
+
         // Fetch user data from Firestore
         const userDoc = await getUserData(user.uid);
-  
+
         if (!userDoc || !userDoc.name || !userDoc.age || !userDoc.gender) {
           // Navigate to Introduction screen with userId parameter
           navigation.reset({
@@ -68,6 +68,8 @@ const LoginScreen = () => {
       setError(
         error.message || 'An unexpected error occurred. Please try again later.'
       );
+    } finally {
+      setLoading(false); // Stop loading
     }
   };
   
@@ -75,6 +77,7 @@ const LoginScreen = () => {
 
   return (
     <View style={styles.container}>
+      <Text style={styles.title}>MedBuddy Login</Text>
       <TextInput
         style={styles.input}
         placeholder="Email"
@@ -89,11 +92,16 @@ const LoginScreen = () => {
         secureTextEntry
       />
       {error && <Text style={styles.error}>{error}</Text>}
-      <Button title="Login" onPress={handleLogin} />
-      <Button 
-        title="Don't have an account? Sign Up" 
-        onPress={() => navigation.navigate('Signup')} // Navigate to SignupScreen
-      />
+      {loading ? (
+        <ActivityIndicator size="large" color="#4CAF50" />
+      ) : (
+        <TouchableOpacity style={styles.button} onPress={handleLogin}>
+          <Text style={styles.buttonText}>Login</Text>
+        </TouchableOpacity>
+      )}
+      <TouchableOpacity onPress={() => navigation.navigate('Signup')}>
+        <Text style={styles.link}>Don't have an account? Sign Up</Text>
+      </TouchableOpacity>
     </View>
   );
 };
@@ -103,18 +111,43 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     padding: 20,
+    backgroundColor: '#121212', // Dark background
+  },
+  title: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    marginBottom: 20,
+    textAlign: 'center',
+    color: '#FFFFFF', // White color for title
   },
   input: {
-    height: 40,
-    borderColor: 'gray',
+    height: 50,
+    borderColor: '#4CAF50', // Green border color
     borderWidth: 1,
     marginBottom: 10,
     paddingLeft: 10,
     borderRadius: 5,
+    backgroundColor: '#1E1E1E', // Darker input background
+    color: '#FFFFFF', // White text color
   },
   error: {
     color: 'red',
     marginBottom: 10,
+  },
+  button: {
+    backgroundColor: '#4CAF50',
+    padding: 15,
+    borderRadius: 5,
+    alignItems: 'center',
+  },
+  buttonText: {
+    color: '#FFFFFF',
+    fontWeight: 'bold',
+  },
+  link: {
+    marginTop: 10,
+    color: '#FFFFFF',
+    textAlign: 'center',
   },
 });
 

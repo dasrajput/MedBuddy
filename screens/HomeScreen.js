@@ -84,15 +84,15 @@ const HomeScreen = ({ route }) => {
         <ImageUploader onResult={handleResult} />
       </View>
 
-      {/* cloudinary Uploader */}
-      <View style={styles.uploaderBox}>
+      
+      {/* <View style={styles.uploaderBox}>
         <Text style={styles.uploaderTitle}>Edge Detection:</Text>
         <EdgeDetection />
-      </View>
+      </View> */}
       
 
       {/* Display Uploaded OCR Data */}
-      {uploadedImageData && (
+      {/* {uploadedImageData && (
           <View style={styles.resultBox}>
             <Text style={styles.resultTitle}>OCR Detection Results:</Text>
             console.log('OCR Detections from server:', JSON.stringify(uploadedImageData, null, 2));
@@ -102,7 +102,7 @@ const HomeScreen = ({ route }) => {
               </Text>
             </TouchableOpacity>
           </View>
-        )}
+        )} */}
     </ScrollView>
   );
 };
@@ -110,34 +110,34 @@ const HomeScreen = ({ route }) => {
 const styles = StyleSheet.create({
   container: {
     flexGrow: 1,
-    justifyContent: 'flex-start', // Align everything to the top
+    justifyContent: 'flex-start',
     alignItems: 'center',
     padding: 20,
-    backgroundColor: '#f5f5f5', // Light background color
+    backgroundColor: '#121212', // Dark background
   },
   headerText: {
     fontSize: 26,
     fontWeight: 'bold',
     marginBottom: 10,
-    color: '#333', // Dark color for the header
+    color: '#4CAF50', // Green color for header text
   },
   scheduleBox: {
     width: '100%',
-    backgroundColor: '#fff',
+    backgroundColor: '#1E1E1E', // Darker box background
     padding: 20,
     borderRadius: 10,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.3,
     shadowRadius: 5,
-    elevation: 5, // Adds shadow on Android devices
+    elevation: 5,
     marginTop: 20,
   },
   scheduleTitle: {
     fontSize: 20,
     fontWeight: '600',
     marginBottom: 15,
-    color: '#444',
+    color: '#4CAF50',
   },
   mealScheduleContainer: {
     marginBottom: 20,
@@ -149,7 +149,7 @@ const styles = StyleSheet.create({
   },
   mealText: {
     fontSize: 16,
-    color: '#555',
+    color: '#FFFFFF', // White color for meal text
   },
   buttonContainer: {
     marginTop: 10,
@@ -158,7 +158,7 @@ const styles = StyleSheet.create({
     width: '100%',
     padding: 16,
     borderRadius: 8,
-    backgroundColor: '#ffffff',
+    backgroundColor: '#1E1E1E',
     shadowColor: '#000',
     shadowOpacity: 0.1,
     shadowRadius: 4,
@@ -168,6 +168,7 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '600',
     marginBottom: 10,
+    color: '#4CAF50',
   },
   resultBox: {
     marginTop: 20,

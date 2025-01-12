@@ -75,7 +75,7 @@ const MealTimeEditScreen = () => {
       <Text style={styles.title}>Edit Meal Times</Text>
 
       <View style={styles.pickerContainer}>
-        <Text>Total Meals:</Text>
+        <Text style={{ color: '#FFFFFF' }}>Total Meals:</Text>
         <Picker
           selectedValue={totalMeals}
           style={styles.picker}
@@ -88,7 +88,7 @@ const MealTimeEditScreen = () => {
 
       {mealTimes.map((meal, index) => (
         <View key={index} style={styles.mealContainer}>
-          <Text>{meal.name} Meal Time:</Text>
+          <Text style={{ color: '#FFFFFF' }}>{meal.name} Meal Time:</Text>
           <TextInput
             style={styles.input}
             value={meal.time}
@@ -97,7 +97,7 @@ const MealTimeEditScreen = () => {
         </View>
       ))}
 
-      <Button title="Save Changes" onPress={handleSave} />
+      <Button title="Save Changes" onPress={handleSave} color="#4CAF50" />
     </View>
   );
 };
@@ -108,11 +108,13 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     padding: 20,
+    backgroundColor: '#121212', // Dark background
   },
   title: {
     fontSize: 24,
     fontWeight: 'bold',
     marginBottom: 20,
+    color: '#FFFFFF', // White color for title
   },
   pickerContainer: {
     width: '100%',
@@ -120,8 +122,9 @@ const styles = StyleSheet.create({
   },
   picker: {
     borderWidth: 1,
-    borderColor: '#ccc',
+    borderColor: '#4CAF50', // Green border color
     borderRadius: 5,
+    color: '#FFFFFF', // White text color
   },
   mealContainer: {
     marginBottom: 10,
@@ -129,11 +132,12 @@ const styles = StyleSheet.create({
   },
   input: {
     borderWidth: 1,
-    borderColor: '#ccc',
+    borderColor: '#4CAF50', // Green border color
     padding: 10,
-    marginBottom: 10,
+    marginBottom: 15,
     borderRadius: 5,
-    width: '100%',
+    backgroundColor: '#1E1E1E', // Darker input background
+    color: '#FFFFFF', // White text color
   },
 });
 

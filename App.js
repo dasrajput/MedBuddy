@@ -23,7 +23,7 @@ import MealTimeEditScreen from "./mealtime/MealTimeEditScreen"; // Import the Me
 const HomeScreenOptions = ({ navigation, route }) => ({
   title: "MedBuddy",
   headerStyle: {
-    backgroundColor: "#fff", // Background color for the header
+    backgroundColor: "#000", // Updated to black
     shadowColor: "transparent", // Remove shadow on iOS
     elevation: 0, // Remove shadow on Android
     height: 80, // Adjust header height
@@ -33,7 +33,7 @@ const HomeScreenOptions = ({ navigation, route }) => ({
   headerTitleStyle: {
     fontSize: 24, // Increase font size for the title
     fontWeight: "bold", // Make the title bold
-    color: "#333", // Dark color for the title
+    color: "#4CAF50", // Updated to green
     alignSelf: "center", // Center the title horizontally
     paddingLeft: 90,
   },
@@ -42,7 +42,7 @@ const HomeScreenOptions = ({ navigation, route }) => ({
     <Ionicons
       name="person-circle"
       size={40}
-      color="blue"
+      color="#4CAF50" // Updated to green
       style={{ paddingLeft: 20 }} // Add padding to left icon
       onPress={() =>
         navigation.navigate("Introduction", { userId: route.params.userId })
