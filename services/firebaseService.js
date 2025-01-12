@@ -1,5 +1,4 @@
-
-import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { addDoc, collection, doc, getDoc, setDoc } from 'firebase/firestore';
 import { auth, firestore } from '../firebaseConfig';
 
 import { getAuth } from 'firebase/auth';
@@ -18,6 +17,11 @@ export const saveUserData = async (userId, data) => {
       throw new Error('You are not authorized to save this data');
     }
 
+    // Check if mealTimes is defined and is an array
+    if (data.mealTimes && !Array.isArray(data.mealTimes)) {
+      throw new Error('mealTimes must be an array');
+    }
+
     // Create a reference to the Firestore document
     const userDocRef = doc(firestore, 'users', userId);
 
@@ -31,25 +35,42 @@ export const saveUserData = async (userId, data) => {
   }
 };
 
+export const saveReminder = async (userId, reminderData) => {
+  try {
+    const currentUser = getAuth().currentUser;
+    console.log("Current user:", currentUser); // Debug statement to check current user
+
+    if (!userId) throw new Error('User ID is required');
+    if (!currentUser || currentUser.uid !== userId) {
+      throw new Error('You are not authorized to save this data');
+    }
+
+    // Create a reference to the Firestore collection for reminders
+    const remindersCollectionRef = collection(firestore, 'reminders');
+    
+    console.log("Attempting to save reminder data to Firestore:", reminderData); // Debug statement
+
+    // Save reminder data to Firestore
+    const docRef = await addDoc(remindersCollectionRef, { ...reminderData, userId });
+    console.log('Reminder saved successfully with ID:', docRef.id); // Debug statement to confirm save
+
+    return { success: true };
+  } catch (error) {
+    console.error('Error saving reminder:', error);
+    return { success: false, error: error.message };
+  }
+};
 
 
 export const getUserData = async (userId) => {
   try {
-    // Get the current authenticated user
     const currentUser = getAuth().currentUser;
-
-    // Validate input
     if (!userId) throw new Error('User ID is required');
     if (!currentUser || currentUser.uid !== userId) {
       throw new Error('You are not authorized to view this data');
     }
-
-    // Create a reference to the Firestore document
     const userDocRef = doc(firestore, 'users', userId);
-
-    // Retrieve the user document
     const userDoc = await getDoc(userDocRef);
-
     if (userDoc.exists()) {
       console.log('User data retrieved successfully:', userDoc.data());
       return userDoc.data(); // Return the user data
@@ -120,4 +141,3 @@ export const signIn = async (email, password) => {
     return null;
   }
 };
-

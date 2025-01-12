@@ -13,6 +13,7 @@ import HomeScreen from "./screens/HomeScreen";
 import SignupScreen from "./screens/SignupScreen";
 
 import IntroductionScreen from "./screens/IntroductionScreen";
+import ManualEntry from './screens/ManualEntry';
 
 import Ionicons from "react-native-vector-icons/Ionicons";
 
@@ -97,6 +98,11 @@ const App = () => {
           component={HomeScreen}
           initialParams={{ userId: null }}
           options={HomeScreenOptions} // Apply profile icon to the header
+        />
+        <Stack.Screen
+          name="ManualEntry"
+          component={ManualEntry}
+          initialParams={{ userId: null, refreshReminders: false }} // Pass userId to ManualEntry
         />
 
         <Stack.Screen
