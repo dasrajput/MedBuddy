@@ -22,6 +22,7 @@
     "@tensorflow/tfjs": "^4.22.0",
     "@tensorflow/tfjs-react-native": "^1.0.0",
     "axios": "^1.7.9",
+    "dayjs": "^1.11.13",
     "expo": "~52.0.25",
     "expo-clipboard": "~7.0.1",
     "expo-image-picker": "~16.0.4",
