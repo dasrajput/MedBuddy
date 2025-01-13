@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TextInput, Button, StyleSheet, Alert } from 'react-native';
+import { View, Text, TextInput, Button, StyleSheet, Alert, ActivityIndicator } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
 import { useNavigation, useRoute } from '@react-navigation/native';
 
 const MealTimeEditScreen = () => {
   const { userId, updateMealData, initialMealTimes, initialTotalMeals } = useRoute().params;
   const navigation = useNavigation();
+  const [navigating, setNavigating] = useState(false);
 
   // Initialize state with passed data from the route params
   const [totalMeals, setTotalMeals] = useState(initialTotalMeals || 3); // Default 3 meals
@@ -54,6 +55,7 @@ const MealTimeEditScreen = () => {
     if (!validateMealTimes()) return;
 
     try {
+      setNavigating(true);
       const updatedMealTimes = mealTimes.slice(0, totalMeals); // Ensure mealTimes is sliced according to totalMeals
       await updateMealData(totalMeals, updatedMealTimes);
       Alert.alert('Success', 'Meal times updated successfully!');
@@ -97,7 +99,12 @@ const MealTimeEditScreen = () => {
         </View>
       ))}
 
-      <Button title="Save Changes" onPress={handleSave} color="#4CAF50" />
+      
+      {navigating ? (
+            <ActivityIndicator size="large" color="#4CAF50" />
+          ) : (
+            <Button title="Save Changes" onPress={handleSave} color="#4CAF50" />
+          )}
     </View>
   );
 };

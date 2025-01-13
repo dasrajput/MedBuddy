@@ -18,6 +18,7 @@ import ManualEntry from './screens/ManualEntry';
 import Ionicons from "react-native-vector-icons/Ionicons";
 
 import MealTimeEditScreen from "./mealtime/MealTimeEditScreen"; // Import the MealTimeEditScreen
+import ReminderHistory from "./screens/ReminderHistory";
 
 // Stack screen options with profile icon
 
@@ -87,7 +88,7 @@ const App = () => {
           options={{
             title: "Introduction", // Custom title for the Introduction screen
 
-            headerStyle: { backgroundColor: "#6200ea" }, // Example of a custom header style
+            headerStyle: { backgroundColor: "#4CAF50" }, // Example of a custom header style
 
             headerTintColor: "#fff", // Custom header text color
           }}
@@ -101,15 +102,38 @@ const App = () => {
         />
         <Stack.Screen
           name="ManualEntry"
+          options={{
+            title: "Manual Reminder", // Custom title for the Introduction screen
+
+            headerStyle: { backgroundColor: "#4CAF50" }, // Example of a custom header style
+
+            headerTintColor: "#fff", // Custom header text color
+          }}
           component={ManualEntry}
           initialParams={{ userId: null, refreshReminders: false }} // Pass userId to ManualEntry
+        />
+        <Stack.Screen
+          name="ReminderHistory"
+          component={ReminderHistory}
+          initialParams={{ userId: null }}
+          options={{
+            title: "Reminder History", // Custom title for the Introduction screen
+
+            headerStyle: { backgroundColor: "#4CAF50" }, // Example of a custom header style
+
+            headerTintColor: "#fff", // Custom header text color
+          }}
         />
 
         <Stack.Screen
           name="MealTimeEdit"
           component={MealTimeEditScreen}
           options={{
-            title: "Edit Meal Times", // Custom title for the MealTimeEdit screen
+            title: "Edit Meal Time", // Custom title for the Introduction screen
+
+            headerStyle: { backgroundColor: "#4CAF50" }, // Example of a custom header style
+
+            headerTintColor: "#fff", // Custom header text color
           }}
         />
       </Stack.Navigator>

@@ -143,8 +143,13 @@ const ManualEntry = ({ route }) => {
           {showTimePicker && <DateTimePicker value={reminderTime} mode="time" is24Hour={true} display="default" onChange={handleTimePickerChange} />}
         </View>
       )}
-      <Button title="Add Reminder" onPress={handleAddReminder} color="#4CAF50" />
-      {loading && <ActivityIndicator size="large" color="#4CAF50" />} {/* Show loading indicator */}
+      <View style={{ alignItems: 'center', marginTop: 20 }}>
+        {loading ? (
+          <ActivityIndicator size="large" color="#4CAF50" />
+        ) : (
+          <Button title="Add Reminder" onPress={handleAddReminder} color="#4CAF50" />
+        )}
+      </View>
     </View>
   );
 };

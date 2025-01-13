@@ -6,6 +6,8 @@ import ImageUploader from '../components/ImageUploader'; // Import the ImageUplo
 import * as Clipboard from 'expo-clipboard';
 import { query, collection, where, getDocs, updateDoc, doc } from 'firebase/firestore';
 import { firestore } from '../firebaseConfig';
+import Ionicons from 'react-native-vector-icons/Ionicons'; // Import Ionicons
+import { useFocusEffect } from '@react-navigation/native';
 
 const HomeScreen = ({ route }) => {
   const { userId, refreshReminders } = route.params || {};
@@ -13,6 +15,9 @@ const HomeScreen = ({ route }) => {
   const [uploadedImageData, setUploadedImageData] = useState(null);
   const [activeReminders, setActiveReminders] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [navigating, setNavigating] = useState(false);
+  const [crossLoading, setCrossLoading] = useState(false);
+  const [loadHistory, setLoadHistory] = useState(false);
 
   // Ensure userId is available before proceeding
   if (!userId) {
@@ -56,10 +61,12 @@ const HomeScreen = ({ route }) => {
 
   const cancelReminder = async (reminderId) => {
     try {
+      setCrossLoading(true);
       const reminderRef = doc(firestore, 'reminders', reminderId);
       await updateDoc(reminderRef, { status: 'cancelled' });
       Alert.alert('Reminder cancelled successfully.');
       fetchReminders(); // Refresh reminders after cancellation
+      setCrossLoading(false);
     } catch (error) {
       console.error('Error cancelling reminder:', error);
     }
@@ -67,6 +74,7 @@ const HomeScreen = ({ route }) => {
   
   const cancelAllReminders = async () => {
     try {
+      setCrossLoading(true);
       const remindersQuery = query(collection(firestore, 'reminders'), where('userId', '==', userId), where('status', '==', 'active'));
       const querySnapshot = await getDocs(remindersQuery);
       
@@ -79,6 +87,7 @@ const HomeScreen = ({ route }) => {
       await Promise.all(promises); // Wait for all updates to complete
       Alert.alert('All active reminders have been cancelled.');
       fetchReminders(); // Refresh reminders after cancellation
+      setCrossLoading(false);
     } catch (error) {
       console.error('Error cancelling reminders:', error);
     }
@@ -90,6 +99,12 @@ const HomeScreen = ({ route }) => {
       fetchReminders(); // Fetch reminders again if coming from ManualEntry with refresh flag
     }
   }, [refreshReminders]);
+
+  useFocusEffect(
+    React.useCallback(() => {
+      fetchReminders(); // Fetch reminders whenever the screen is focused
+    }, [])
+  );
 
   const handleEditMealTimes = async () => {
     Alert.alert(
@@ -103,8 +118,12 @@ const HomeScreen = ({ route }) => {
         {
           text: 'OK',
           onPress: async () => {
+            setNavigating(true);
             await cancelAllReminders(); // Cancel all reminders
-            navigation.navigate('MealTimeEdit', { userId, updateMealData }); // Navigate to MealTimeEdit
+            setTimeout(() => {
+              navigation.navigate('MealTimeEdit', { userId, updateMealData }); // Navigate to MealTimeEdit
+              setNavigating(false); // Stop loading
+            }, 2000); // Adjust the delay as needed
           },
         },
       ],
@@ -138,10 +157,14 @@ const HomeScreen = ({ route }) => {
         <View style={styles.mealScheduleContainer}>
           {renderMealSlots()}
         </View>
-        <View style={styles.buttonContainer}>
-          <TouchableOpacity style={styles.addButton} onPress={handleEditMealTimes}>
-            <Text style={styles.addButtonText}>Edit Meal Times</Text>
-          </TouchableOpacity>
+        <View >
+        
+          {navigating ? (
+            <ActivityIndicator size="large" color="#4CAF50" />
+          ) : (
+            <TouchableOpacity style={styles.addButton} onPress={handleEditMealTimes}><Text style={styles.addButtonText}>Edit Meal Times</Text></TouchableOpacity>
+          )}
+        
         </View>
       </View>
 
@@ -157,17 +180,40 @@ const HomeScreen = ({ route }) => {
       {/* Active Reminders Section */}
       <View style={styles.activeRemindersSection}>
         <Text style={styles.activeRemindersTitle}>Active Reminders</Text>
+
+        
+        {loadHistory ? (
+          <ActivityIndicator size="small" color="#4CAF50" />
+        ) : (
+          <TouchableOpacity onPress={() => navigation.navigate('ReminderHistory', { userId })} style={styles.historyButton}>
+            <Text style={styles.historyButtonText}>See History</Text>
+          </TouchableOpacity>
+        )}
+
+        <TouchableOpacity onPress={cancelAllReminders} style={styles.dustbinButton}>
+          <Ionicons name="trash-bin" size={24} color="red" />
+        </TouchableOpacity>
         <View style={styles.remindersContainer}>
           {loading ? ( // Show loading indicator while fetching
             <ActivityIndicator size="large" color="#4CAF50" />
           ) : activeReminders.length > 0 ? (
             activeReminders.map((reminder) => (
-              <View key={reminder.id} style={styles.remindersBox}>
-                <Text style={styles.reminderText}>{reminder.medicineName} - {reminder.numberOfPills} Pills</Text>
-                <TouchableOpacity onPress={() => cancelReminder(reminder.id)}>
-                  <Text style={styles.cancelText}>Cancel</Text>
-                </TouchableOpacity>
-              </View>
+              <View key={reminder.id} style={styles.remindersBox}>  
+                <View style={{flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4}}>
+                  <View style={{flex: 1, marginLeft: 10}}>  
+                    <Text style={styles.medicineName}>{reminder.medicineName}</Text>  
+                    <Text style={styles.pillsText}>{reminder.numberOfPills} Pills</Text>  
+                  </View>   
+                   
+                  {crossLoading ? (
+                    <ActivityIndicator size="large" color="#4CAF50" />
+                  ) : (
+                    <TouchableOpacity onPress={() => cancelReminder(reminder.id)} style={styles.cancelButton}>  
+                      <Ionicons name="close" size={24} color="white" />  
+                    </TouchableOpacity> 
+                  )}
+                </View>  
+              </View>  
             ))
           ) : (
             <Text style={styles.reminderText}>No active reminders.</Text>
@@ -274,6 +320,10 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 2,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 10,
   },
   reminderText: {
     fontSize: 16,
@@ -296,6 +346,44 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#FFFFFF',
   },
+  cancelButton: {
+    backgroundColor: 'red',
+    padding: 9,
+    borderRadius: 5,
+    width: 40,
+    height: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  medicineName: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#FFFFFF',
+  },
+  pillsText: {
+    fontSize: 14,
+    color: '#FFFFFF',
+  },
+  dustbinButton: {
+    
+    position: 'absolute',
+    right: 10,
+    top: 10,
+  },
+  historyButton: {
+    width: 110,
+    height: 40,
+    margin: 10,
+    padding: 10,
+    backgroundColor: '#4CAF50', // Match the theme color
+    borderRadius: 5,
+  },
+  
+  historyButtonText: {
+    fontSize: 16,
+    color: '#FFFFFF', // White text for contrast
+    fontWeight: 'bold',
+  }
 });
 
 export default HomeScreen;
