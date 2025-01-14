@@ -20,7 +20,7 @@ const ManualEntry = ({ route }) => {
   const { userId } = route.params;
   const [medicineName, setMedicineName] = useState("");
   const [numberOfPills, setNumberOfPills] = useState("1"); // Default to 1 pill
-  const [timingType, setTimingType] = useState("custom"); // 'custom' or 'meal'
+  const [timingType, setTimingType] = useState("meal"); // 'custom' or 'meal'
   const [mealTiming, setMealTiming] = useState("before"); // 'before' or 'after'
   const [mealType, setMealType] = useState(""); // Morning, Afternoon, Evening
   const [reminderTime, setReminderTime] = useState(new Date()); // Initialize with current date and time

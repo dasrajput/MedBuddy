@@ -174,7 +174,7 @@ const HomeScreen = ({ route }) => {
       {/* Image Uploader */}
       <View style={styles.uploaderBox}>
         <Text style={styles.uploaderTitle}>Upload Prescription Sticker:</Text>
-        <ImageUploader onResult={handleResult} />
+        <ImageUploader onResult={handleResult} userId={userId} />
       </View>
 
       {/* Active Reminders Section */}

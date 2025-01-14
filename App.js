@@ -13,7 +13,7 @@ import HomeScreen from "./screens/HomeScreen";
 import SignupScreen from "./screens/SignupScreen";
 
 import IntroductionScreen from "./screens/IntroductionScreen";
-import ManualEntry from './screens/ManualEntry';
+import ManualEntry from "./screens/ManualEntry";
 
 import Ionicons from "react-native-vector-icons/Ionicons";
 
@@ -78,9 +78,7 @@ const App = () => {
     <NavigationContainer>
       <Stack.Navigator initialRouteName="Login">
         <Stack.Screen name="Login" component={LoginScreen} />
-
         <Stack.Screen name="Signup" component={SignupScreen} />
-
         <Stack.Screen
           name="Introduction"
           component={IntroductionScreen}
@@ -93,7 +91,6 @@ const App = () => {
             headerTintColor: "#fff", // Custom header text color
           }}
         />
-
         <Stack.Screen
           name="Home"
           component={HomeScreen}
@@ -124,7 +121,6 @@ const App = () => {
             headerTintColor: "#fff", // Custom header text color
           }}
         />
-
         <Stack.Screen
           name="MealTimeEdit"
           component={MealTimeEditScreen}
@@ -136,6 +132,8 @@ const App = () => {
             headerTintColor: "#fff", // Custom header text color
           }}
         />
+        
+        
       </Stack.Navigator>
     </NavigationContainer>
   );

@@ -2,9 +2,20 @@ import React, { useEffect, useState } from 'react';
 import { View, TouchableOpacity, Image, StyleSheet, Text, Alert } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import axios from 'axios';
-
-const ImageUploader = ({ onResult }) => {
+import OcrLoader from './OcrLoader'; // Import the OcrLoader component
+import { useNavigation } from '@react-navigation/native';
+const ImageUploader = ({ onResult, userId  }) => {
+  const [showLoader, setShowLoader] = useState(false); // Manage loader visibility
   const [imageUri, setImageUri] = useState(null);
+  const navigation = useNavigation();
+
+  const handleUploadImage = () => {
+    setShowLoader(true); // Show the loader
+    setTimeout(() => {
+      navigation.navigate('ManualEntry', { userId }); // Navigate after 1 second
+      setShowLoader(false); // Hide the loader
+    }, 2000); // 2 second delay
+  };
 
   useEffect(() => {
     (async () => {
@@ -55,64 +66,69 @@ const ImageUploader = ({ onResult }) => {
     }
   };
 
-  const uploadImage = async (uri) => {
-    if (!uri) {
-      Alert.alert('Error', 'No image selected!');
-      return;
-    }
+  // const uploadImage = async (uri) => {
+  //   if (!uri) {
+  //     Alert.alert('Error', 'No image selected!');
+  //     return;
+  //   }
 
-    const formData = new FormData();
-    formData.append('image', {
-      uri: uri,
-      name: 'uploaded_image.jpg',
-      type: 'image/jpeg',
-    });
+  //   const formData = new FormData();
+  //   formData.append('image', {
+  //     uri: uri,
+  //     name: 'uploaded_image.jpg',
+  //     type: 'image/jpeg',
+  //   });
 
 
-    try {
-      const response = await axios.post('http://192.168.140.16:5000/detect', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
+  //   try {
+  //     const response = await axios.post('http://192.168.140.16:5000/detect', formData, {
+  //       headers: { 'Content-Type': 'multipart/form-data' },
         
-      });
+  //     });
 
-      console.log('Server response:', response.data);
+  //     console.log('Server response:', response.data);
 
-      // Ensure onResult is defined before calling it
-      if (onResult && typeof onResult === 'function') {
-        onResult(response.data);
-        Alert.alert('Success!', 'Uploaded image successfully!');
-      } else {
-        console.warn('onResult is not defined or is not a function');
-      }
-    } catch (error) {
-      console.error('Error uploading image:', error); // Log error for debugging
-      if (error.response) {
-        console.error('Server responded with:', error.response.data); 
-      }
-      Alert.alert('Error', 'Failed to process image.');
-    }
-  };
-
+  //     // Ensure onResult is defined before calling it
+  //     if (onResult && typeof onResult === 'function') {
+  //       onResult(response.data);
+  //       Alert.alert('Success!', 'Uploaded image successfully!');
+  //     } else {
+  //       console.warn('onResult is not defined or is not a function');
+  //     }
+  //   } catch (error) {
+  //     console.error('Error uploading image:', error); // Log error for debugging
+  //     if (error.response) {
+  //       console.error('Server responded with:', error.response.data); 
+  //     }
+  //     Alert.alert('Error', 'Failed to process image.');
+  //   }
+  // };
+  //const uploadImage = navigation.navigate('ManualEntry', { userId }); // Change to navigate to ManualEntry
   return (
     <View style={styles.container}>
-      <View style={styles.innerBox}>
-        {imageUri && (
-          <Image source={{ uri: imageUri }} style={styles.image} />
-        )}
-        <View style={styles.buttonRow}>
-          <TouchableOpacity style={styles.button} onPress={pickImage}>
-            <Text style={styles.buttonText}>Pick Image</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.button} onPress={takePicture}>
-            <Text style={styles.buttonText}>Take Picture</Text>
-          </TouchableOpacity>
-          <View style={styles.centerButton}>
-            <TouchableOpacity style={styles.button} onPress={() => uploadImage(imageUri)}>
-              <Text style={styles.buttonText}>Upload Image</Text>
+      {showLoader ? (
+        <OcrLoader imageUri={imageUri} />
+        // Show loader if true
+      ) : (
+        <View style={styles.innerBox}>
+          {imageUri && (
+            <Image source={{ uri: imageUri }} style={styles.image} />
+          )}
+          <View style={styles.buttonRow}>
+            <TouchableOpacity style={styles.button} onPress={pickImage}>
+              <Text style={styles.buttonText}>Pick Image</Text>
             </TouchableOpacity>
+            <TouchableOpacity style={styles.button} onPress={takePicture}>
+              <Text style={styles.buttonText}>Take Picture</Text>
+            </TouchableOpacity>
+            <View style={styles.centerButton}>
+              <TouchableOpacity style={styles.button} onPress={handleUploadImage}>
+                <Text style={styles.buttonText}>Upload Image</Text>
+              </TouchableOpacity>
+            </View>
           </View>
         </View>
-      </View>
+      )}
     </View>
   );
 };
