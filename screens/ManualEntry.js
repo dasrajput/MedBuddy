@@ -19,7 +19,7 @@ import dayjs from "dayjs";
 const ManualEntry = ({ route }) => {
   const { userId } = route.params;
   const [medicineName, setMedicineName] = useState("");
-  const [numberOfPills, setNumberOfPills] = useState("1"); // Default to 1 pill
+  const [numberOfPills, setNumberOfPills] = useState("2"); // Default to 1 pill
   const [timingType, setTimingType] = useState("meal"); // 'custom' or 'meal'
   const [mealTiming, setMealTiming] = useState("before"); // 'before' or 'after'
   const [mealType, setMealType] = useState(""); // Morning, Afternoon, Evening
