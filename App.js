@@ -99,15 +99,16 @@ const App = () => {
         />
         <Stack.Screen
           name="ManualEntry"
-          options={{
-            title: "Manual Reminder", // Custom title for the Introduction screen
-
-            headerStyle: { backgroundColor: "#4CAF50" }, // Example of a custom header style
-
-            headerTintColor: "#fff", // Custom header text color
-          }}
           component={ManualEntry}
-          initialParams={{ userId: null, refreshReminders: false }} // Pass userId to ManualEntry
+          options={{ gestureEnabled: false }} // Prevent accidental back
+          initialParams={{
+            userId: null,
+            ocrResults: { // Default empty structure
+              meal_relation: '',
+              schedule: []
+            },
+            refreshReminders: false
+          }}
         />
         <Stack.Screen
           name="ReminderHistory"

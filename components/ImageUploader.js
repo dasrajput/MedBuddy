@@ -4,18 +4,145 @@ import * as ImagePicker from 'expo-image-picker';
 import axios from 'axios';
 import OcrLoader from './OcrLoader'; // Import the OcrLoader component
 import { useNavigation } from '@react-navigation/native';
-const ImageUploader = ({ onResult, userId  }) => {
-  const [showLoader, setShowLoader] = useState(false); // Manage loader visibility
+import PropTypes from 'prop-types';
+import { NetworkInfo } from 'react-native-network-info';
+import * as Network from 'expo-network';
+
+// Fixed Zeroconf initialization
+let zeroconfInstance = null;
+
+const initializeZeroconf = async () => {
+  if (!zeroconfInstance) {
+    const { Zeroconf } = require('react-native-zeroconf');
+    zeroconfInstance = new Zeroconf();
+    
+    // Get actual local IP
+    const localIP = await NetworkInfo.getIPV4Address();
+    zeroconfInstance.setLocalAddress(localIP);
+    
+    // Required for Android
+    zeroconfInstance.init();
+  }
+  return zeroconfInstance;
+};
+
+// Updated discovery function
+const discoverBackend = async () => {
+  try {
+    const ip = await Network.getIpAddressAsync();
+    const baseIP = ip.split('.').slice(0, 3).join('.');
+    
+    // Scan realistic IP range (100-150)
+    const candidates = Array.from({length: 50}, (_, i) => `${baseIP}.${100 + i}`);
+    
+    // Parallel check with proper timeout
+    const checks = candidates.map(async (ip) => {
+      try {
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 1500);
+        
+        const response = await fetch(`http://${ip}:5000/health`, {
+          signal: controller.signal
+        });
+        clearTimeout(timeout);
+        
+        return response.ok ? ip : null;
+      } catch {
+        return null;
+      }
+    });
+
+    const results = await Promise.all(checks);
+    return results.find(ip => ip !== null);
+    
+  } catch (error) {
+    Alert.alert('Network Error', 'Ensure both devices are on same WiFi');
+    return null;
+  }
+};
+
+// 1. Auto-discovery
+const discoverServer = () => {
+  return new Promise((resolve) => {
+    const zc = new Zeroconf();
+    zc.scan('_medbuddy._tcp', 'local.');
+    
+    zc.on('resolved', (service) => {
+      if (service.name.includes('MedBuddy Server')) {
+        resolve(`http://${service.host}:${service.port}`);
+      }
+    });
+    
+    setTimeout(() => resolve(null), 5000);
+  });
+};
+
+// 2. Manual fallback
+const manualConnect = async (ip) => {
+  try {
+    const response = await fetch(`http://${ip}:5000/health-check`);
+    return response.ok ? ip : null;
+  } catch {
+    return null;
+  }
+};
+
+// 3. Combined flow
+const handleUpload = async () => {
+  const backendIP = await discoverBackend();
+  if (!backendIP) return;
+  
+  const API_URL = `http://${backendIP}:5000/upload`;
+  
+  let url = await discoverServer();
+  
+  if (!url) {
+    const manualIP = await showIPInputDialog(); // Your UI component
+    url = `http://${manualIP}:5000`;
+  }
+  
+  // Proceed with upload
+};
+
+const ImageUploader = ({ userId, onResult, ocrResults }) => {
+  const [showLoader, setShowLoader] = useState(false);
   const [imageUri, setImageUri] = useState(null);
   const navigation = useNavigation();
 
-  const handleUploadImage = () => {
-    setShowLoader(true); // Show the loader
-    setTimeout(() => {
-      navigation.navigate('ManualEntry', { userId }); // Navigate after 1 second
-      setShowLoader(false); // Hide the loader
-    }, 2000); // 2 second delay
+  const handleUploadImage = async () => {
+    try {
+      setShowLoader(true);
+      
+      if (!imageUri) {
+        Alert.alert('No Image', 'Please select an image first');
+        return;
+      }
+
+      // Actual upload logic
+      const responseData = await uploadImage(imageUri);
+      
+      if (!responseData.schedule) {
+        throw new Error('Invalid server response');
+      }
+
+      navigation.navigate('ManualEntry', {
+        userId,
+        ocrResults: responseData,
+        refreshReminders: true
+      });
+
+    } catch (error) {
+      Alert.alert('Upload Failed', error.message);
+    } finally {
+      setShowLoader(false);
+    }
   };
+  
+  console.log('Navigation Params:', {
+    userId,
+    ocrResults: ocrResults,
+    refreshReminders: true
+  });
 
   useEffect(() => {
     (async () => {
@@ -66,44 +193,35 @@ const ImageUploader = ({ onResult, userId  }) => {
     }
   };
 
-  // const uploadImage = async (uri) => {
-  //   if (!uri) {
-  //     Alert.alert('Error', 'No image selected!');
-  //     return;
-  //   }
+  const createFormData = (uri) => {
+    const formData = new FormData();
+    formData.append('image', {
+      uri,
+      type: 'image/jpeg',
+      name: 'medication.jpg',
+    });
+    return formData;
+  };
 
-  //   const formData = new FormData();
-  //   formData.append('image', {
-  //     uri: uri,
-  //     name: 'uploaded_image.jpg',
-  //     type: 'image/jpeg',
-  //   });
+  const uploadImage = async (uri) => {
+    try {
+      const response = await fetch('http://192.168.28.16:5000/process', {
+        method: 'POST',
+        body: createFormData(uri),
+      });
 
+      if (!response.ok) {
+        throw new Error(`Server error: ${response.status}`);
+      }
 
-  //   try {
-  //     const response = await axios.post('http://192.168.140.16:5000/detect', formData, {
-  //       headers: { 'Content-Type': 'multipart/form-data' },
-        
-  //     });
+      return await response.json();
+      
+    } catch (error) {
+      console.error('Upload failed:', error);
+      throw new Error('Failed to process image. Please try again.');
+    }
+  };
 
-  //     console.log('Server response:', response.data);
-
-  //     // Ensure onResult is defined before calling it
-  //     if (onResult && typeof onResult === 'function') {
-  //       onResult(response.data);
-  //       Alert.alert('Success!', 'Uploaded image successfully!');
-  //     } else {
-  //       console.warn('onResult is not defined or is not a function');
-  //     }
-  //   } catch (error) {
-  //     console.error('Error uploading image:', error); // Log error for debugging
-  //     if (error.response) {
-  //       console.error('Server responded with:', error.response.data); 
-  //     }
-  //     Alert.alert('Error', 'Failed to process image.');
-  //   }
-  // };
-  //const uploadImage = navigation.navigate('ManualEntry', { userId }); // Change to navigate to ManualEntry
   return (
     <View style={styles.container}>
       {showLoader ? (
@@ -122,7 +240,7 @@ const ImageUploader = ({ onResult, userId  }) => {
               <Text style={styles.buttonText}>Take Picture</Text>
             </TouchableOpacity>
             <View style={styles.centerButton}>
-              <TouchableOpacity style={styles.button} onPress={handleUploadImage}>
+              <TouchableOpacity style={styles.button} onPress={handleUploadImage} disabled={!imageUri}>
                 <Text style={styles.buttonText}>Upload Image</Text>
               </TouchableOpacity>
             </View>
@@ -131,6 +249,11 @@ const ImageUploader = ({ onResult, userId  }) => {
       )}
     </View>
   );
+};
+
+ImageUploader.propTypes = {
+  userId: PropTypes.string.isRequired,
+  onResult: PropTypes.func
 };
 
 const styles = StyleSheet.create({
@@ -181,7 +304,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   centerButton: {
-    
+
     paddingLeft: 50,
   },
 });

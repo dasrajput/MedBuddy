@@ -1,14 +1,12 @@
 import { addDoc, collection, doc, getDoc, setDoc } from 'firebase/firestore';
-import { auth, firestore } from '../firebaseConfig';
-
-import { getAuth } from 'firebase/auth';
+import { auth, firestore  } from '../firebaseConfig';
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword } from 'firebase/auth';
 
 
 export const saveUserData = async (userId, data) => {
   try {
     // Get the current authenticated user
-    const currentUser = getAuth().currentUser;
+    const currentUser = auth.currentUser;
 
     // Validate inputs
     if (!userId) throw new Error('User ID is required');
@@ -37,7 +35,7 @@ export const saveUserData = async (userId, data) => {
 
 export const saveReminder = async (userId, reminderData) => {
   try {
-    const currentUser = getAuth().currentUser;
+    const currentUser = auth.currentUser;
     console.log("Current user:", currentUser); // Debug statement to check current user
 
     if (!userId) throw new Error('User ID is required');
@@ -64,7 +62,7 @@ export const saveReminder = async (userId, reminderData) => {
 
 export const getUserData = async (userId) => {
   try {
-    const currentUser = getAuth().currentUser;
+    const currentUser = auth.currentUser;
     if (!userId) throw new Error('User ID is required');
     if (!currentUser || currentUser.uid !== userId) {
       throw new Error('You are not authorized to view this data');

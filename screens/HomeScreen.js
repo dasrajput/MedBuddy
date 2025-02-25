@@ -4,7 +4,7 @@ import { useNavigation } from '@react-navigation/native';
 import { useMealData } from '../mealtime/MealTimeLogic'; // Use the custom hook for meal data management
 import ImageUploader from '../components/ImageUploader'; // Import the ImageUploader component
 import * as Clipboard from 'expo-clipboard';
-import { query, collection, where, getDocs, updateDoc, doc } from 'firebase/firestore';
+import {  collection, query, where, getDocs, updateDoc, doc } from 'firebase/firestore';
 import { firestore } from '../firebaseConfig';
 import Ionicons from 'react-native-vector-icons/Ionicons'; // Import Ionicons
 import { useFocusEffect } from '@react-navigation/native';
@@ -19,9 +19,10 @@ const HomeScreen = ({ route }) => {
   const [crossLoading, setCrossLoading] = useState(false);
   const [loadHistory, setLoadHistory] = useState(false);
 
-  // Ensure userId is available before proceeding
   if (!userId) {
-    return <Text>User ID not found!</Text>;
+    Alert.alert("Error", "User authentication required");
+    navigation.navigate('Login');
+    return null;
   }
 
   // Use the custom hook to fetch meal data and provide update functionality
@@ -43,9 +44,13 @@ const HomeScreen = ({ route }) => {
   };
 
   const fetchReminders = async () => {
-    setLoading(true); // Set loading to true
+    setLoading(true);
     try {
-      const remindersQuery = query(collection(firestore, 'reminders'), where('userId', '==', userId), where('status', '==', 'active'));
+      const remindersQuery = query(
+        collection(firestore, 'reminders'), 
+        where('userId', '==', userId), 
+        where('status', '==', 'active')
+      );
       const querySnapshot = await getDocs(remindersQuery);
       const reminders = [];
       querySnapshot.forEach((doc) => {
@@ -55,7 +60,7 @@ const HomeScreen = ({ route }) => {
     } catch (error) {
       console.error('Error fetching reminders:', error);
     } finally {
-      setLoading(false); // Set loading to false after fetching
+      setLoading(false);
     }
   };
 
@@ -65,28 +70,31 @@ const HomeScreen = ({ route }) => {
       const reminderRef = doc(firestore, 'reminders', reminderId);
       await updateDoc(reminderRef, { status: 'cancelled' });
       Alert.alert('Reminder cancelled successfully.');
-      fetchReminders(); // Refresh reminders after cancellation
+      fetchReminders();
       setCrossLoading(false);
     } catch (error) {
       console.error('Error cancelling reminder:', error);
     }
   };
-  
+
   const cancelAllReminders = async () => {
     try {
       setCrossLoading(true);
-      const remindersQuery = query(collection(firestore, 'reminders'), where('userId', '==', userId), where('status', '==', 'active'));
+      const remindersQuery = query(
+        collection(firestore, 'reminders'), 
+        where('userId', '==', userId), 
+        where('status', '==', 'active')
+      );
       const querySnapshot = await getDocs(remindersQuery);
       
-      // Use map to create an array of promises for updating each reminder
       const promises = querySnapshot.docs.map(doc => {
-        const reminderRef = doc.ref; // Get the reference directly from the document snapshot
-        return updateDoc(reminderRef, { status: 'cancelled' }); // Update the status to 'cancelled'
+        const reminderRef = doc.ref;
+        return updateDoc(reminderRef, { status: 'cancelled' });
       });
-  
-      await Promise.all(promises); // Wait for all updates to complete
+
+      await Promise.all(promises);
       Alert.alert('All active reminders have been cancelled.');
-      fetchReminders(); // Refresh reminders after cancellation
+      fetchReminders();
       setCrossLoading(false);
     } catch (error) {
       console.error('Error cancelling reminders:', error);
@@ -95,10 +103,11 @@ const HomeScreen = ({ route }) => {
 
   useEffect(() => {
     fetchReminders(); // Fetch reminders when the component mounts
-    if (refreshReminders) {
-      fetchReminders(); // Fetch reminders again if coming from ManualEntry with refresh flag
+    if (route.params?.refresh) {
+      fetchReminders();
+      navigation.setParams({ refresh: false });
     }
-  }, [refreshReminders]);
+  }, [route.params]);
 
   useFocusEffect(
     React.useCallback(() => {
@@ -145,8 +154,15 @@ const HomeScreen = ({ route }) => {
 
   // Callback function to handle OCR detection results
   const handleResult = (data) => {
-    console.log('OCR Detections from server:', data);
-    setUploadedImageData(data);
+    if (data.schedule && data.meal_relation) {
+      // Save to Firestore
+      saveUserData(userId, {
+        medicationSchedule: data
+      });
+      setUploadedImageData(data);
+    } else {
+      Alert.alert('Invalid Results', 'Could not parse medication schedule');
+    }
   };
 
   return (
@@ -174,7 +190,16 @@ const HomeScreen = ({ route }) => {
       {/* Image Uploader */}
       <View style={styles.uploaderBox}>
         <Text style={styles.uploaderTitle}>Upload Prescription Sticker:</Text>
-        <ImageUploader onResult={handleResult} userId={userId} />
+        <ImageUploader
+          userId={userId}
+          onResult={(ocrResults) => {
+            navigation.navigate('ManualEntry', {
+              userId,
+              ocrResults,
+              refreshReminders: true
+            });
+          }}
+        />
       </View>
 
       {/* Active Reminders Section */}
@@ -220,7 +245,10 @@ const HomeScreen = ({ route }) => {
           )}
         </View>
         <View style={styles.buttonContainer}>
-          <TouchableOpacity style={styles.addButton} onPress={() => navigation.navigate('ManualEntry', { userId })}>
+          <TouchableOpacity 
+            style={styles.addButton} 
+            onPress={() => navigation.navigate('ManualEntry', { userId })}
+          >
             <Text style={styles.addButtonText}>Add Reminder</Text>
           </TouchableOpacity>
         </View>
