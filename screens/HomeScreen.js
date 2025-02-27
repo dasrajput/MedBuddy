@@ -165,6 +165,12 @@ const HomeScreen = ({ route }) => {
     }
   };
 
+  const calculateSecondsUntil = (scheduledTime) => {
+    const now = new Date();
+    const target = new Date(scheduledTime);
+    return Math.floor((target - now) / 1000);
+  };
+
   return (
     <ScrollView contentContainerStyle={styles.container}>
       {/* Meal Schedule Box */}
@@ -227,7 +233,7 @@ const HomeScreen = ({ route }) => {
                 <View style={{flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4}}>
                   <View style={{flex: 1, marginLeft: 10}}>  
                     <Text style={styles.medicineName}>{reminder.medicineName}</Text>  
-                    <Text style={styles.pillsText}>{reminder.numberOfPills} Pills</Text>  
+                    <Text style={styles.pillsText}>{reminder.pills} Pills</Text>  
                   </View>   
                    
                   {crossLoading ? (

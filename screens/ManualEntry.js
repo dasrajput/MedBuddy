@@ -39,7 +39,7 @@ const ToggleButtonGroup = ({ options, selected, onSelect, style }) => (
 );
 
 const ManualEntry = ({ route }) => {
-  const { userId, ocrResults, refreshReminders } = route.params || {};
+  const { userId, ocrResults = {} } = route.params;
   const navigation = useNavigation();
 
   if (!userId) {
@@ -48,19 +48,14 @@ const ManualEntry = ({ route }) => {
     return null;
   }
 
-  const [schedules, setSchedules] = useState(() => {
-    if (ocrResults?.schedule) {
-      return ocrResults.schedule
-        .filter(item => item.pills > 0)
-        .map(item => ({
-          timeLabel: item.time?.toLowerCase() || 'morning',
-          pills: item.pills.toString(),
-          mealRelation: ocrResults.meal_relation || 'before',
-          timingType: 'meal'
-        }));
-    }
-    return [];
-  });
+  const [mealTimes] = useState([]); // Default to empty array
+
+  const [schedules, setSchedules] = useState([{
+    timeLabel: 'morning',
+    pills: '1',
+    mealRelation: 'before',
+    timingType: 'meal'
+  }]);
   const [currentSchedule, setCurrentSchedule] = useState({
     pills: '',
     time: 'morning',
@@ -74,7 +69,7 @@ const ManualEntry = ({ route }) => {
   const [reminderDateTime, setReminderDateTime] = useState(new Date());
   const [showTimePicker, setShowTimePicker] = useState(false);
   const [showDatePicker, setShowDatePicker] = useState(false); // Initialize showDatePicker state
-  const { mealTimes } = useMealData(userId); // Fetch meal times from Firestore
+  const { mealTimes: mealTimesFromData } = useMealData(userId); // Fetch meal times from Firestore
   const [loading, setLoading] = useState(false);
   const [selectedDateOption, setSelectedDateOption] = useState("today"); // Default to 'today'
   const [reminderTime, setReminderTime] = useState(new Date());
@@ -103,21 +98,25 @@ const ManualEntry = ({ route }) => {
   }, [ocrResults]);
 
   useEffect(() => {
-    if (ocrResults?.schedule && mealTimes?.length > 0) {
-      const processed = ocrResults.schedule
-        .filter(entry => entry.pills > 0)
-        .map(entry => ({
-          pills: entry.pills.toString(),
-          time: entry.time.toLowerCase(),
-          mealRelation: ocrResults.meal_relation
+    if (ocrResults?.schedule) {
+      const validSchedules = ocrResults.schedule
+        .filter(item => item.pills > 0) // Only keep schedules with pills > 0
+        .map(item => ({
+          timeLabel: item.time || 'morning',
+          pills: item.pills.toString(),
+          mealRelation: ocrResults.meal_relation || 'before',
+          timingType: 'meal'
         }));
-        
-      setSchedules(processed);
-      if (processed.length > 0) {
-        setCurrentSchedule(processed[0]);
-      }
+      
+      // Fallback to default if no valid schedules
+      setSchedules(validSchedules.length > 0 ? validSchedules : [{
+        timeLabel: 'morning',
+        pills: '1',
+        mealRelation: 'before',
+        timingType: 'meal'
+      }]);
     }
-  }, [ocrResults, mealTimes]);
+  }, [ocrResults]);
 
   useEffect(() => {
     if (!ocrResults?.schedule) {
@@ -137,7 +136,7 @@ const ManualEntry = ({ route }) => {
 
   useEffect(() => {
     const calculateDefaultDate = () => {
-      if (timingType === 'meal' && mealTimes.length > 0) {
+      if (timingType === 'meal' && mealTimesFromData.length > 0) {
         const calculatedTime = calculateMealTime();
         const now = new Date();
         
@@ -159,38 +158,24 @@ const ManualEntry = ({ route }) => {
     };
 
     calculateDefaultDate();
-  }, [mealType, mealTiming, timingType, mealTimes]);
+  }, [mealType, mealTiming, timingType, mealTimesFromData]);
 
   useEffect(() => {
-    if (mealTimes.length > 0) {
-      const defaultMeal = mealTimes[0].name;
+    if (mealTimesFromData.length > 0) {
+      const defaultMeal = mealTimesFromData[0].name;
       setMealType(defaultMeal);
       // Initialize reminder time with first meal's time
-      const initialTime = parseMealTime(mealTimes[0].time);
+      const initialTime = parseMealTime(mealTimesFromData[0].time);
       setReminderTime(initialTime);
     }
-  }, [mealTimes]); // Reset when mealTimes update
-
-  useEffect(() => {
-    if (ocrResults?.schedule) {
-      const processed = ocrResults.schedule
-        .filter(item => item.pills > 0)
-        .map(item => ({
-          timeLabel: parseTimeLabel(item.time),
-          pills: item.pills.toString(),
-          mealRelation: ocrResults.meal_relation || 'before'
-        }));
-      
-      setSchedules(processed);
-    }
-  }, [ocrResults, mealTimes]);
+  }, [mealTimesFromData]); // Reset when mealTimes update
 
   useEffect(() => {
     const calculateReminderTime = () => {
       const currentSchedule = schedules[0];
       
       // Find matching meal time
-      const selectedMeal = mealTimes.find(meal => 
+      const selectedMeal = mealTimesFromData.find(meal => 
         meal.name.toLowerCase() === currentSchedule.timeLabel
       );
       
@@ -213,7 +198,7 @@ const ManualEntry = ({ route }) => {
     };
 
     calculateReminderTime();
-  }, [schedules, mealTimes]);
+  }, [schedules, mealTimesFromData]);
 
   const handleDateOptionChange = (option) => {
     setSelectedDateOption(option);
@@ -253,23 +238,27 @@ const ManualEntry = ({ route }) => {
     setSchedules(updatedSchedules);
   };
 
-  const parseMealTime = (mealTimeString) => {
-    const [time, period] = mealTimeString.split(" ");
-    const [hours, minutes] = time.split(":").map(Number);
+  const parseMealTime = (timeStr) => {
+    const [time, period] = timeStr.split(' ');
+    const [hoursStr, minutesStr] = time.split(':');
     
-    // Convert to 24-hour format
-    let hours24 = hours;
-    if (period === "PM" && hours !== 12) hours24 += 12;
-    if (period === "AM" && hours === 12) hours24 = 0;
+    let hours = parseInt(hoursStr);
+    const minutes = parseInt(minutesStr);
 
-    const baseDate = new Date(reminderDate);
-    baseDate.setHours(hours24, minutes, 0, 0);
-    return baseDate;
+    // Convert to 24-hour format
+    if (period === 'PM' && hours !== 12) hours += 12;
+    if (period === 'AM' && hours === 12) hours = 0;
+
+    // Create Date object with today's date
+    const date = new Date();
+    date.setHours(hours, minutes, 0, 0);
+    
+    return date;
   };
 
   const handleMealTypeChange = (itemValue) => {
     setMealType(itemValue);
-    const selectedMeal = mealTimes.find((meal) => meal.name === itemValue);
+    const selectedMeal = mealTimesFromData.find((meal) => meal.name === itemValue);
     if (selectedMeal) {
       const mealTime = parseMealTime(selectedMeal.time);
       setReminderDateTime(mealTime); // Update reminderTime with the parsed meal time
@@ -281,28 +270,61 @@ const ManualEntry = ({ route }) => {
     return { hours: parseInt(hours), minutes: parseInt(minutes) };
   };
 
-  const calculateReminderTime = (baseDate, mealTime, mealRelation) => {
-    const adjustedDate = new Date(baseDate);
-    const { hours, minutes } = parseTimeString(mealTime);
-    
-    // Set base meal time
-    adjustedDate.setHours(hours, minutes, 0, 0);
-    
-    // Apply meal relation offset
-    if (mealRelation === 'before') {
-      adjustedDate.setMinutes(adjustedDate.getMinutes() - 15);
-    } else {
-      adjustedDate.setMinutes(adjustedDate.getMinutes() + 30);
+  const calculateReminderTime = (mealTimes = [], timeLabel, mealRelation) => {
+    if (!timeLabel) {
+      console.error('Missing timeLabel');
+      return '08:30 AM';
     }
     
-    return adjustedDate;
+    try {
+      // Find matching meal time
+      const mealConfig = (mealTimes || []).find(m => 
+        m.name.toLowerCase() === timeLabel.toLowerCase()
+      );
+      
+      if (!mealConfig) {
+        console.error('No meal time found for:', timeLabel);
+        return '08:30 AM'; // Fallback
+      }
+
+      // Parse meal time to Date object
+      const baseTime = parseMealTime(mealConfig.time);
+      
+      // Clone the Date object to avoid mutation issues
+      const reminderTime = new Date(baseTime);
+
+      // Apply offsets
+      if (mealRelation === 'before') {
+        reminderTime.setMinutes(reminderTime.getMinutes() - 15);
+      } else {
+        reminderTime.setMinutes(reminderTime.getMinutes() + 15);
+      }
+
+      // Handle date rollover
+      const now = new Date();
+      if (reminderTime < now) {
+        reminderTime.setDate(reminderTime.getDate() + 1);
+      }
+
+      // Format to AM/PM
+      let hours = reminderTime.getHours();
+      const minutes = reminderTime.getMinutes().toString().padStart(2, '0');
+      const period = hours >= 12 ? 'PM' : 'AM';
+      hours = hours % 12 || 12; // Convert to 12-hour format
+
+      return `${hours}:${minutes} ${period}`;
+
+    } catch (error) {
+      console.error('Time calculation error:', error);
+      return '08:30 AM'; // Fallback
+    }
   };
 
   const findMealTime = (timeLabel) => {
     // Normalize both values to lowercase for comparison
     const normalizedLabel = (timeLabel || 'morning').toLowerCase().trim();
     
-    const mealTime = mealTimes.find(m => 
+    const mealTime = mealTimesFromData.find(m => 
       m.name.toLowerCase() === normalizedLabel
     );
 
@@ -312,78 +334,169 @@ const ManualEntry = ({ route }) => {
     return mealTime;
   };
 
+  const getAdjustedDate = (baseDate, days = 0) => {
+    const date = new Date(baseDate);
+    date.setDate(date.getDate() + days);
+    date.setHours(0, 0, 0, 0);
+    return date;
+  };
+  
+
+  const calculateTargetTime = (timeLabel, mealRelation, baseDate) => {
+    const timeMap = {
+      morning: { hour: 8, minute: 0 },
+      afternoon: { hour: 12, minute: 0 },
+      evening: { hour: 18, minute: 0 }
+    };
+
+    const date = new Date(baseDate);
+    const { hour, minute } = timeMap[timeLabel.toLowerCase()] || timeMap.morning;
+    
+    // Set base time
+    date.setHours(hour);
+    date.setMinutes(minute + (mealRelation === 'before' ? -15 : 30));
+    date.setSeconds(0);
+
+    // Handle past times
+    const now = new Date();
+    if (date < now) {
+      date.setDate(date.getDate() + 1);
+    }
+
+    return date;
+  };
+
+  const getHardcodedTime = (timeLabel, mealRelation) => {
+    console.log('[DEBUG] Input values:', { 
+      timeLabel, 
+      mealRelation 
+    });
+
+    const timeMap = {
+      morning: {
+        before: '8:15 AM',
+        after: '8:45 AM'
+      },
+      afternoon: {
+        before: '12:15 PM',
+        after: '12:45 PM'
+      },
+      evening: {
+        before: '7:45 PM',
+        after: '8:15 PM'
+      }
+    };
+
+    const normalizedLabel = (timeLabel || 'morning').toLowerCase().trim();
+    const normalizedRelation = (mealRelation || 'before').toLowerCase().trim();
+    
+    console.log('[DEBUG] Normalized values:', {
+      normalizedLabel,
+      normalizedRelation
+    });
+
+    const result = timeMap[normalizedLabel]?.[normalizedRelation] || '8:15 AM';
+    console.log('[DEBUG] Calculated time:', result);
+    
+    return result;
+  };
+
+  const convertToISO = (timeStr) => {
+    console.log('[CONVERT] Input time:', timeStr);
+    
+    const [time, period] = timeStr.split(' ');
+    let [hours, minutes] = time.split(':').map(Number);
+    
+    console.log('[CONVERT] Parsed:', { hours, minutes, period });
+
+    if (period === 'PM' && hours !== 12) hours += 12;
+    if (period === 'AM' && hours === 12) hours = 0;
+    
+    const date = new Date();
+    date.setHours(hours, minutes, 0, 0);
+    
+    console.log('[CONVERT] Initial date:', date.toISOString());
+
+    if (date < new Date()) {
+      console.log('[CONVERT] Time in past, adding 1 day');
+      date.setDate(date.getDate() + 1);
+    }
+    
+    console.log('[CONVERT] Final ISO date:', date.toISOString());
+    return date.toISOString();
+  };
+
   const handleSave = async () => {
     try {
-      const validSchedules = schedules.filter(schedule => 
-        schedule.pills > 0 && schedule.timeLabel
-      );
-
+      const validSchedules = schedules.filter(schedule => {
+        const isValid = parseInt(schedule.pills) > 0;
+        if (!isValid) console.warn('[SAVE] Invalid schedule:', schedule);
+        return isValid;
+      });
+      
       if (validSchedules.length === 0) {
-        throw new Error('No valid reminders to save');
+        throw new Error('Please add at least 1 pill to each schedule');
       }
 
-      const newReminders = validSchedules.map((scheduleItem) => {
-        if (!scheduleItem.timeLabel) {
-          throw new Error("Invalid schedule entry - missing time label");
-        }
+      console.log('[SAVE] Starting save process with schedules:', schedules);
+      
+      const reminders = schedules.map((schedule, index) => {
+        const reminderTime = getHardcodedTime(
+          schedule.timeLabel, 
+          schedule.mealRelation
+        );
 
-        const mealTimeData = findMealTime(scheduleItem.timeLabel);
-        const baseTime = parseMealTime(mealTimeData.time);
+        // Add this line to create reminderDate
+        // Alternative version with Day.js validation
+        const a = convertToISO(reminderTime)
+        const reminderDate = dayjs(a).format('YYYY-MM-DD');
+      
         
-        // Apply meal relation offset
-        const reminderTime = new Date(baseTime);
-        if (scheduleItem.mealRelation === 'before') {
-          reminderTime.setMinutes(reminderTime.getMinutes() - 15);
-        } else {
-          reminderTime.setMinutes(reminderTime.getMinutes() + 30);
-        }
-
-        // Calculate seconds until reminder
-        const now = new Date();
-        const secondsUntil = Math.floor((reminderTime - now) / 1000);
-
-        if (secondsUntil < 0) {
-          throw new Error(`Time for ${scheduleItem.timeLabel} has already passed`);
-        }
+        console.log(`[SAVE] Schedule ${index + 1}:`, {
+          timeLabel: schedule.timeLabel,
+          mealRelation: schedule.mealRelation,
+          calculatedTime: reminderTime
+        });
 
         return {
-          status: 'active',
-          userId: userId,
-          medicineName: medicineName,
-          numberOfPills: scheduleItem.pills,
-          secondsUntil: secondsUntil,
-          mealRelation: scheduleItem.mealRelation,
-          timeLabel: scheduleItem.timeLabel.toLowerCase(),
-          scheduledTime: reminderTime.toISOString()
+          medicineName: medicineName || 'Medication',
+          timeLabel: schedule.timeLabel,
+          pills: schedule.pills,
+          mealRelation: schedule.mealRelation,
+          reminderTime,
+          reminderDate,
+          scheduledTime: convertToISO(reminderTime),
+          status: 'active'
         };
       });
 
-      await Promise.all(newReminders.map(reminder => 
+      console.log('[SAVE] Final reminders to save:', reminders);
+      await Promise.all(reminders.map(reminder => 
         saveReminder(userId, reminder)
       ));
       
-      Alert.alert('Success', `${newReminders.length} reminders scheduled`);
+      Alert.alert('Success', 'Reminders saved');
       navigation.goBack();
-      
     } catch (error) {
-      Alert.alert('Error', error.message);
+      console.error('[ERROR] Save failed:', error);
+      Alert.alert('Error', `Save failed: ${error.message}`);
     }
   };
 
   const updateSchedule = (index, field, value) => {
+    console.log('[SCHEDULE UPDATE]', { index, field, value });
     const newSchedules = [...schedules];
     newSchedules[index][field] = value;
     setSchedules(newSchedules);
   };
 
   const addSchedule = () => {
-    const newSchedules = [...schedules, {
-      timeLabel: mealTimes[0]?.name?.toLowerCase() ?? 'morning',
+    setSchedules([...schedules, {
+      timeLabel: mealTimesFromData[0]?.name || 'Morning',
       pills: '1',
       mealRelation: 'before',
       timingType: 'meal'
-    }];
-    setSchedules(newSchedules);
+    }]);
   };
 
   const removeSchedule = (index) => {
@@ -395,13 +508,14 @@ const ManualEntry = ({ route }) => {
 
   const adjustPills = (index, delta) => {
     const currentValue = parseInt(schedules[index].pills) || 0;
-    const newValue = Math.max(0, currentValue + delta);
+    const newValue = Math.max(1, currentValue + delta); // Minimum 1 pill
+    console.log('[PILLS] Adjusting:', { index, currentValue, delta, newValue });
     updateSchedule(index, 'pills', newValue.toString());
   };
 
   // Meal time calculation from old implementation
   const calculateMealTime = () => {
-    const selectedMeal = mealTimes.find(meal => meal.name === mealType);
+    const selectedMeal = mealTimesFromData.find(meal => meal.name === mealType);
     if (!selectedMeal) return new Date();
 
     let mealTime = parseMealTime(selectedMeal.time);
@@ -483,142 +597,147 @@ const ManualEntry = ({ route }) => {
           </View>
         )}
 
-        {schedules.map((schedule, index) => (
-          <View key={index} style={styles.scheduleCard}>
-            <TouchableOpacity 
-              onPress={() => removeSchedule(index)}
-              style={styles.removeButton}
-            >
-              <Text style={styles.removeButtonText}>×</Text>
-            </TouchableOpacity>
-            
-            <Text style={styles.scheduleTitle}>{schedule.timeLabel} Schedule</Text>
-            
-            <Text style={styles.label}>Time of Day</Text>
-            <ToggleButtonGroup
-              options={[
-                { label: 'Morning', value: 'morning' },
-                { label: 'Afternoon', value: 'afternoon' },
-                { label: 'Evening', value: 'evening' }
-              ]}
-              selected={schedule.timeLabel}
-              onSelect={value => updateSchedule(index, 'time', value)}
-              style={{ marginBottom: 15 }}
-            />
-
-            <Text style={styles.label}>Timing Type</Text>
-            <ToggleButtonGroup
-              options={[
-                { label: 'Meal-based', value: 'meal' },
-                { label: 'Custom Time', value: 'custom' }
-              ]}
-              selected={timingType}
-              onSelect={setTimingType}
-              style={{ marginBottom: 15 }}
-            />
-
-            <View style={styles.section}>
-              <Text style={styles.label}>Reminder Date:</Text>
-              <DateSelector 
-                options={dateOptions}
-                selected={selectedDateOption}
-                onSelect={handleDateOptionChange}
-              />
+        {schedules
+          .filter(schedule => parseInt(schedule.pills) > 0)
+          .map((schedule, index) => (
+            <View key={index} style={styles.scheduleCard}>
+              <TouchableOpacity 
+                onPress={() => removeSchedule(index)}
+                style={styles.removeButton}
+              >
+                <Text style={styles.removeButtonText}>×</Text>
+              </TouchableOpacity>
               
-              {selectedDateOption === 'custom' && (
-                <View>
+              <Text style={styles.scheduleTitle}>{schedule.timeLabel} Schedule</Text>
+              
+              <Text style={styles.label}>Time of Day</Text>
+              <ToggleButtonGroup
+                options={[
+                  { label: 'Morning', value: 'morning' },
+                  { label: 'Afternoon', value: 'afternoon' },
+                  { label: 'Evening', value: 'evening' }
+                ]}
+                selected={schedule.timeLabel}
+                onSelect={value => updateSchedule(index, 'timeLabel', value)}
+                style={{ marginBottom: 15 }}
+              />
+
+              <Text style={styles.label}>Timing Type</Text>
+              <ToggleButtonGroup
+                options={[
+                  { label: 'Meal-based', value: 'meal' },
+                  { label: 'Custom Time', value: 'custom' }
+                ]}
+                selected={timingType}
+                onSelect={setTimingType}
+                style={{ marginBottom: 15 }}
+              />
+
+              <View style={styles.section}>
+                <Text style={styles.label}>Reminder Date:</Text>
+                <DateSelector 
+                  options={dateOptions}
+                  selected={selectedDateOption}
+                  onSelect={handleDateOptionChange}
+                />
+                
+                {selectedDateOption === 'custom' && (
+                  <View>
+                    <TouchableOpacity 
+                      onPress={() => setShowDatePicker(true)}
+                      style={styles.timeInput}
+                    >
+                      <Text style={styles.timePickerText}>
+                        {dayjs(reminderDate).format("MMM D, YYYY")}
+                      </Text>
+                    </TouchableOpacity>
+
+                    {showDatePicker && (
+                      <DateTimePicker
+                        value={reminderDate}
+                        mode="date"
+                        minimumDate={new Date()}
+                        onChange={(event, date) => {
+                          setShowDatePicker(false);
+                          if (date) {
+                            setReminderDate(date);
+                          }
+                        }}
+                      />
+                    )}
+                  </View>
+                )}
+              </View>
+
+              {timingType === "custom" && (
+                <View style={styles.section}>
+                  <Text style={styles.label}>Custom Time:</Text>
                   <TouchableOpacity 
-                    onPress={() => setShowDatePicker(true)}
+                    onPress={() => setShowTimePicker(true)}
                     style={styles.timeInput}
                   >
                     <Text style={styles.timePickerText}>
-                      {dayjs(reminderDate).format("MMM D, YYYY")}
+                      {dayjs(reminderTime).format("h:mm A")}
                     </Text>
                   </TouchableOpacity>
-
-                  {showDatePicker && (
+                  
+                  {showTimePicker && (
                     <DateTimePicker
-                      value={reminderDate}
-                      mode="date"
-                      minimumDate={new Date()}
-                      onChange={(event, date) => {
-                        setShowDatePicker(false);
-                        if (date) {
-                          setReminderDate(date);
+                      value={reminderTime}
+                      mode="time"
+                      onChange={(event, time) => {
+                        setShowTimePicker(false);
+                        if (time) {
+                          setReminderTime(time);
                         }
                       }}
                     />
                   )}
                 </View>
               )}
-            </View>
 
-            {timingType === "custom" && (
-              <View style={styles.section}>
-                <Text style={styles.label}>Custom Time:</Text>
-                <TouchableOpacity 
-                  onPress={() => setShowTimePicker(true)}
-                  style={styles.timeInput}
-                >
-                  <Text style={styles.timePickerText}>
-                    {dayjs(reminderTime).format("h:mm A")}
-                  </Text>
-                </TouchableOpacity>
-                
-                {showTimePicker && (
-                  <DateTimePicker
-                    value={reminderTime}
-                    mode="time"
-                    onChange={(event, time) => {
-                      setShowTimePicker(false);
-                      if (time) {
-                        setReminderTime(time);
-                      }
+              {timingType === "meal" && (
+                <View style={styles.section}>
+                  <Text style={styles.label}>Meal Relation:</Text>
+                  <ToggleButtonGroup
+                    options={[
+                      { label: 'Before Meal', value: 'before' },
+                      { label: 'After Meal', value: 'after' }
+                    ]}
+                    selected={schedule.mealRelation}
+                    onSelect={value => {
+                      console.log('[UI] Meal relation changed:', { index, value });
+                      updateSchedule(index, 'mealRelation', value);
                     }}
                   />
-                )}
-              </View>
-            )}
+                </View>
+              )}
 
-            {timingType === "meal" && (
-              <View style={styles.section}>
-                <Text style={styles.label}>Meal Relation:</Text>
-                <ToggleButtonGroup
-                  options={[
-                    { label: 'Before Meal', value: 'before' },
-                    { label: 'After Meal', value: 'after' }
-                  ]}
-                  selected={mealTiming}
-                  onSelect={setMealTiming}
+              <Text style={styles.label}>Number of Pills</Text>
+              <View style={styles.pillCounter}>
+                <TouchableOpacity 
+                  onPress={() => adjustPills(index, -1)}
+                  style={styles.counterButton}
+                >
+                  <Text style={styles.buttonText}>-</Text>
+                </TouchableOpacity>
+                
+                <TextInput
+                  value={schedule.pills}
+                  onChangeText={text => updateSchedule(index, 'pills', text)}
+                  style={styles.pillInput}
+                  keyboardType="numeric"
                 />
+                
+                <TouchableOpacity 
+                  onPress={() => adjustPills(index, 1)}
+                  style={styles.counterButton}
+                >
+                  <Text style={styles.buttonText}>+</Text>
+                </TouchableOpacity>
               </View>
-            )}
-
-            <Text style={styles.label}>Number of Pills</Text>
-            <View style={styles.pillCounter}>
-              <TouchableOpacity 
-                onPress={() => adjustPills(index, -1)}
-                style={styles.counterButton}
-              >
-                <Text style={styles.buttonText}>-</Text>
-              </TouchableOpacity>
-              
-              <TextInput
-                value={schedule.pills}
-                onChangeText={text => updateSchedule(index, 'pills', text)}
-                style={styles.pillInput}
-                keyboardType="numeric"
-              />
-              
-              <TouchableOpacity 
-                onPress={() => adjustPills(index, 1)}
-                style={styles.counterButton}
-              >
-                <Text style={styles.buttonText}>+</Text>
-              </TouchableOpacity>
             </View>
-          </View>
-        ))}
+          ))}
 
         <View style={styles.scheduleControls}>
           <TouchableOpacity 

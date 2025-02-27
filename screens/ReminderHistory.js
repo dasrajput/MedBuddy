@@ -83,7 +83,7 @@ const ReminderHistory = ({ route }) => {
               renderItem={({ item }) => (
               
                 <View style={styles.reminderCard}>
-                  <Text style={styles.reminderText}>{item.medicineName} - {item.numberOfPills} Pills</Text>
+                  <Text style={styles.reminderText}>{item.medicineName} - {item.pills} Pills</Text>
                   <Text style={styles.reminderStatus}>{item.status}</Text>
                 </View>
               

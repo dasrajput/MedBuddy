@@ -26,83 +26,6 @@ const initializeZeroconf = async () => {
   return zeroconfInstance;
 };
 
-// Updated discovery function
-const discoverBackend = async () => {
-  try {
-    const ip = await Network.getIpAddressAsync();
-    const baseIP = ip.split('.').slice(0, 3).join('.');
-    
-    // Scan realistic IP range (100-150)
-    const candidates = Array.from({length: 50}, (_, i) => `${baseIP}.${100 + i}`);
-    
-    // Parallel check with proper timeout
-    const checks = candidates.map(async (ip) => {
-      try {
-        const controller = new AbortController();
-        const timeout = setTimeout(() => controller.abort(), 1500);
-        
-        const response = await fetch(`http://${ip}:5000/health`, {
-          signal: controller.signal
-        });
-        clearTimeout(timeout);
-        
-        return response.ok ? ip : null;
-      } catch {
-        return null;
-      }
-    });
-
-    const results = await Promise.all(checks);
-    return results.find(ip => ip !== null);
-    
-  } catch (error) {
-    Alert.alert('Network Error', 'Ensure both devices are on same WiFi');
-    return null;
-  }
-};
-
-// 1. Auto-discovery
-const discoverServer = () => {
-  return new Promise((resolve) => {
-    const zc = new Zeroconf();
-    zc.scan('_medbuddy._tcp', 'local.');
-    
-    zc.on('resolved', (service) => {
-      if (service.name.includes('MedBuddy Server')) {
-        resolve(`http://${service.host}:${service.port}`);
-      }
-    });
-    
-    setTimeout(() => resolve(null), 5000);
-  });
-};
-
-// 2. Manual fallback
-const manualConnect = async (ip) => {
-  try {
-    const response = await fetch(`http://${ip}:5000/health-check`);
-    return response.ok ? ip : null;
-  } catch {
-    return null;
-  }
-};
-
-// 3. Combined flow
-const handleUpload = async () => {
-  const backendIP = await discoverBackend();
-  if (!backendIP) return;
-  
-  const API_URL = `http://${backendIP}:5000/upload`;
-  
-  let url = await discoverServer();
-  
-  if (!url) {
-    const manualIP = await showIPInputDialog(); // Your UI component
-    url = `http://${manualIP}:5000`;
-  }
-  
-  // Proceed with upload
-};
 
 const ImageUploader = ({ userId, onResult, ocrResults }) => {
   const [showLoader, setShowLoader] = useState(false);
@@ -205,7 +128,7 @@ const ImageUploader = ({ userId, onResult, ocrResults }) => {
 
   const uploadImage = async (uri) => {
     try {
-      const response = await fetch('http://192.168.28.16:5000/process', {
+      const response = await fetch('https://mymedbuddy.pagekite.me/process', {
         method: 'POST',
         body: createFormData(uri),
       });
