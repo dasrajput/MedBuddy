@@ -8,6 +8,7 @@ import {  collection, query, where, getDocs, updateDoc, doc } from 'firebase/fir
 import { firestore } from '../firebaseConfig';
 import Ionicons from 'react-native-vector-icons/Ionicons'; // Import Ionicons
 import { useFocusEffect } from '@react-navigation/native';
+import dayjs from 'dayjs';
 
 const HomeScreen = ({ route }) => {
   const { userId, refreshReminders } = route.params || {};
@@ -234,8 +235,18 @@ const HomeScreen = ({ route }) => {
                   <View style={{flex: 1, marginLeft: 10}}>  
                     <Text style={styles.medicineName}>{reminder.medicineName}</Text>  
                     <Text style={styles.pillsText}>{reminder.pills} Pills</Text>  
-                  </View>   
-                   
+                  </View>
+                  
+                  {/* Add Date/Time Section */}
+                  <View style={styles.timeContainer}>
+                    <Text style={styles.dateText}>
+                      {dayjs(reminder.reminderDate).format('DD-MM-YYYY')}
+                    </Text>
+                    <Text style={styles.timeText}>
+                      {reminder.reminderTime}
+                    </Text>
+                  </View>
+                  
                   {crossLoading ? (
                     <ActivityIndicator size="large" color="#4CAF50" />
                   ) : (
@@ -417,7 +428,23 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#FFFFFF', // White text for contrast
     fontWeight: 'bold',
-  }
+  },
+  timeContainer: {
+    alignItems: 'flex-end',
+    marginRight: 15,
+    minWidth: 100
+  },
+  dateText: {
+    fontSize: 14,
+    color: '#888',
+    fontFamily: 'Roboto-Medium'
+  },
+  timeText: {
+    fontSize: 16,
+    color: '#4CAF50',
+    fontFamily: 'Roboto-Bold',
+    marginTop: 4
+  },
 });
 
 export default HomeScreen;

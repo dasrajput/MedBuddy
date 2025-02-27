@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, FlatList, ActivityIndicator, TouchableOpacity, Alert } from 'react-native';
 import { firestore } from '../firebaseConfig'; // Adjust the import based on your project structure
 import { query, collection, where, getDocs, deleteDoc } from 'firebase/firestore';
+import dayjs from 'dayjs';
 
 const ReminderHistory = ({ route }) => {
   const { userId } = route.params; // Get userId from route params
@@ -81,12 +82,32 @@ const ReminderHistory = ({ route }) => {
               data={history}
               keyExtractor={(item) => item.id}
               renderItem={({ item }) => (
-              
                 <View style={styles.reminderCard}>
-                  <Text style={styles.reminderText}>{item.medicineName} - {item.pills} Pills</Text>
-                  <Text style={styles.reminderStatus}>{item.status}</Text>
+                  <View style={styles.cardContent}>
+                    {/* Left Section */}
+                    <View style={styles.infoContainer}>
+                      <Text style={styles.reminderText}>
+                        {item.medicineName} - {item.pills} Pills
+                      </Text>
+                      <Text style={[
+                        styles.reminderStatus,
+                        item.status === 'cancelled' ? styles.cancelled : styles.completed
+                      ]}>
+                        {item.status}
+                      </Text>
+                    </View>
+
+                    {/* Right Section */}
+                    <View style={styles.timeContainer}>
+                      <Text style={styles.historyDate}>
+                        {dayjs(item.reminderDate).format('DD MMM YYYY')}
+                      </Text>
+                      <Text style={styles.historyTime}>
+                        {item.reminderTime}
+                      </Text>
+                    </View>
+                  </View>
                 </View>
-              
               )}
             />
             </View>
@@ -97,10 +118,8 @@ const ReminderHistory = ({ route }) => {
 
 const styles = StyleSheet.create({
   container: {
-    flexGrow: 1,
-    justifyContent: 'flex-start',
-    alignItems: 'center',
-    padding: 20,
+    flex: 1,
+    padding: 16,
     backgroundColor: '#121212',
   },
   title: {
@@ -116,28 +135,53 @@ const styles = StyleSheet.create({
     marginTop: 20, // Add some margin for spacing
   },
   reminderCard: {
-    width: '100%',
-    padding: 15,
-    marginVertical: 8,
-    borderRadius: 10,
     backgroundColor: '#1E1E1E',
-    shadowColor: "#000",
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-    elevation: 5,
+    borderRadius: 12,
+    padding: 16,
+    marginVertical: 8,
+    width: '100%',
+    elevation: 3,
+  },
+  cardContent: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  infoContainer: {
+    flex: 1,
+    marginRight: 16,
   },
   reminderText: {
-    fontSize: 18,
-    fontWeight: 'bold',
+    fontSize: 16,
+    fontWeight: '600',
     color: '#FFFFFF',
+    marginBottom: 4,
   },
   reminderStatus: {
     fontSize: 14,
+    fontWeight: '500',
+    textTransform: 'capitalize',
+  },
+  cancelled: {
+    color: '#FF5252',
+  },
+  completed: {
+    color: '#4CAF50',
+  },
+  timeContainer: {
+    alignItems: 'flex-end',
+    minWidth: 100,
+  },
+  historyDate: {
+    fontSize: 14,
     color: '#888888',
+    fontFamily: 'Roboto-Medium',
+    marginBottom: 4,
+  },
+  historyTime: {
+    fontSize: 15,
+    color: '#FFFFFF',
+    fontFamily: 'Roboto-Bold',
   },
   deleteButton: {
     marginLeft: 'auto', // Align to the right
