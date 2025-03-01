@@ -76,6 +76,8 @@ const ManualEntry = ({ route }) => {
   const [reminderDate, setReminderDate] = useState(new Date());
   const [dateOptions, setDateOptions] = useState([]);
   const [autoDate, setAutoDate] = useState(new Date());
+  const [date, setDate] = useState(new Date());
+  const [time, setTime] = useState(new Date());
 
   useEffect(() => {
     console.log('Received OCR Results:', route.params?.ocrResults);
@@ -441,31 +443,60 @@ const ManualEntry = ({ route }) => {
       console.log('[SAVE] Starting save process with schedules:', schedules);
       
       const reminders = schedules.map((schedule, index) => {
-        const reminderTime = getHardcodedTime(
+        // Default values
+        let reminderTime = getHardcodedTime(
           schedule.timeLabel, 
           schedule.mealRelation
         );
-
-        // Add this line to create reminderDate
-        // Alternative version with Day.js validation
-        const a = convertToISO(reminderTime)
-        const reminderDate = dayjs(a).format('YYYY-MM-DD');
-      
+        
+        let reminderDate = dayjs(new Date()).format('YYYY-MM-DD');
+        
+        // If custom date was selected, use that instead
+        if (selectedDateOption === 'custom') {
+          reminderDate = dayjs(date).format('YYYY-MM-DD');
+        } else if (selectedDateOption === 'tomorrow') {
+          reminderDate = dayjs().add(1, 'day').format('YYYY-MM-DD');
+        }
+        
+        // If custom time was selected, use that instead of the hardcoded time
+        let scheduledTime;
+        if (timingType === 'custom') {
+          // Format the time for display
+          reminderTime = dayjs(time).format('h:mm A');
+          
+          // Create a combined date and time for the scheduledTime
+          const combinedDateTime = new Date();
+          
+          // Parse the date
+          const [year, month, day] = reminderDate.split('-').map(Number);
+          combinedDateTime.setFullYear(year, month - 1, day);
+          
+          // Set the time components
+          combinedDateTime.setHours(time.getHours(), time.getMinutes(), 0, 0);
+          
+          scheduledTime = combinedDateTime.toISOString();
+          console.log('[SAVE] Custom time scheduled:', scheduledTime);
+        } else {
+          // Use the existing conversion for meal-based timing
+          scheduledTime = convertToISO(reminderTime);
+        }
         
         console.log(`[SAVE] Schedule ${index + 1}:`, {
           timeLabel: schedule.timeLabel,
           mealRelation: schedule.mealRelation,
-          calculatedTime: reminderTime
+          calculatedTime: reminderTime,
+          reminderDate: reminderDate,
+          scheduledTime: scheduledTime
         });
 
         return {
-          medicineName: medicineName || 'Medication',
+          medicineName: typeof medicineName === 'string' ? medicineName : 'Medication',
           timeLabel: schedule.timeLabel,
           pills: schedule.pills,
           mealRelation: schedule.mealRelation,
           reminderTime,
           reminderDate,
-          scheduledTime: convertToISO(reminderTime),
+          scheduledTime,
           status: 'active'
         };
       });
@@ -562,6 +593,30 @@ const ManualEntry = ({ route }) => {
     return mappings[ocrTime.toLowerCase()] || ocrTime.toLowerCase();
   };
 
+  const onDateChange = (event, selectedDate) => {
+    setShowDatePicker(false);
+    if (selectedDate) {
+      // ONLY update the date state, not medicineName
+      setDate(selectedDate);
+    }
+  };
+
+  const onTimeChange = (event, selectedTime) => {
+    setShowTimePicker(false);
+    if (selectedTime) {
+      // ONLY update the time state, not medicineName
+      setTime(selectedTime);
+    }
+  };
+
+  const showDatePickerModal = () => {
+    setShowDatePicker(true);
+  };
+
+  const showTimePickerModal = () => {
+    setShowTimePicker(true);
+  };
+
   return (
     <KeyboardAvoidingView
       style={styles.container}
@@ -648,21 +703,16 @@ const ManualEntry = ({ route }) => {
                       style={styles.timeInput}
                     >
                       <Text style={styles.timePickerText}>
-                        {dayjs(reminderDate).format("MMM D, YYYY")}
+                        {dayjs(date).format("MMM D, YYYY")}
                       </Text>
                     </TouchableOpacity>
 
                     {showDatePicker && (
                       <DateTimePicker
-                        value={reminderDate}
+                        value={date}
                         mode="date"
-                        minimumDate={new Date()}
-                        onChange={(event, date) => {
-                          setShowDatePicker(false);
-                          if (date) {
-                            setReminderDate(date);
-                          }
-                        }}
+                        display="default"
+                        onChange={onDateChange}
                       />
                     )}
                   </View>
@@ -677,20 +727,16 @@ const ManualEntry = ({ route }) => {
                     style={styles.timeInput}
                   >
                     <Text style={styles.timePickerText}>
-                      {dayjs(reminderTime).format("h:mm A")}
+                      {dayjs(time).format("h:mm A")}
                     </Text>
                   </TouchableOpacity>
                   
                   {showTimePicker && (
                     <DateTimePicker
-                      value={reminderTime}
+                      value={time}
                       mode="time"
-                      onChange={(event, time) => {
-                        setShowTimePicker(false);
-                        if (time) {
-                          setReminderTime(time);
-                        }
-                      }}
+                      display="default"
+                      onChange={onTimeChange}
                     />
                   )}
                 </View>
