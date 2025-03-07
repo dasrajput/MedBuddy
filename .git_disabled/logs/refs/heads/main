@@ -1,0 +1,13 @@
+0000000000000000000000000000000000000000 d5977d2664e335de34390571e649a1925168f23f Dindayalsingh04 <dindyalsingh2310@gmail.com> 1736688919 +0530	commit (initial): Initial commit
+d5977d2664e335de34390571e649a1925168f23f d5977d2664e335de34390571e649a1925168f23f Dindayalsingh04 <dindyalsingh2310@gmail.com> 1736688978 +0530	Branch: renamed refs/heads/master to refs/heads/main
+d5977d2664e335de34390571e649a1925168f23f 904098c79a63e9c12b2072a9ddef47726f4e2b37 Dindayalsingh04 <dindyalsingh2310@gmail.com> 1736689093 +0530	commit (merge): Resolved merge conflicts
+904098c79a63e9c12b2072a9ddef47726f4e2b37 7ebd3c51455e85923e37e4d8513609573007c622 Dindayalsingh04 <dindyalsingh2310@gmail.com> 1736696208 +0530	commit: stable change added loading icon improved things
+7ebd3c51455e85923e37e4d8513609573007c622 17e5b392ce195e6c1693205e3f3127788b2ddf88 Dindayalsingh04 <dindyalsingh2310@gmail.com> 1736710833 +0530	commit: stable change added manual stuff and connected to a new collection
+17e5b392ce195e6c1693205e3f3127788b2ddf88 5da81e3601a38086868cb9cc4216798cfe6b06e9 Dindayalsingh04 <dindyalsingh2310@gmail.com> 1736785612 +0530	commit: major chnages added history and a lot of things too
+5da81e3601a38086868cb9cc4216798cfe6b06e9 630f52db054d859cf56ab22b5c1198b9a934cde0 Dindayalsingh04 <dindyalsingh2310@gmail.com> 1736796393 +0530	commit: major chnages added history and added set reminder
+630f52db054d859cf56ab22b5c1198b9a934cde0 b6b2c5f136e2eaf0f21543e0caa69b31948e944d Dindayalsingh04 <dindyalsingh2310@gmail.com> 1736881608 +0530	commit: major chnages added camera scannig feature
+b6b2c5f136e2eaf0f21543e0caa69b31948e944d ac2eb604ddc176fdfb2c568a54620481f02099d6 Dindayalsingh04 <dindyalsingh2310@gmail.com> 1737049088 +0530	pull origin main: Fast-forward
+ac2eb604ddc176fdfb2c568a54620481f02099d6 8c266583978bc4132f83cf2e4abf0beab70fc746 Dindayal Singh <dindyalsingh2310@gmail.com> 1740500679 +0530	commit: major chnages added camera scannig feature
+8c266583978bc4132f83cf2e4abf0beab70fc746 43fb02047a5cfe26994689842bc497cc98e71968 Dindayal Singh <dindyalsingh2310@gmail.com> 1740675593 +0530	commit: changes in reminder data stored to firebase
+43fb02047a5cfe26994689842bc497cc98e71968 8d573e420fbf6a4968c787db3b69bc8b4f77eaff Dindayal Singh <dindyalsingh2310@gmail.com> 1740676659 +0530	commit: changes in active areminders card and reminder history card
+8d573e420fbf6a4968c787db3b69bc8b4f77eaff a8c612408517902bfd0d678ae7a0a89cbd281ae3 Dindayal Singh <dindyalsingh2310@gmail.com> 1740846290 +0530	commit: fixed issue with custom timing and date
