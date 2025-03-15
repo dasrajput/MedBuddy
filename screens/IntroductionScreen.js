@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, TextInput, Button, StyleSheet, Alert } from 'react-native';
+import { View, Text, TextInput, Button, StyleSheet, Alert, Image, TouchableOpacity } from 'react-native';
 import { saveUserData, getUserData } from '../services/firebaseService'; // Your Firebase function
 import { Picker } from '@react-native-picker/picker';
+import { LinearGradient } from 'expo-linear-gradient'; // Import LinearGradient
 
 const IntroductionScreen = ({ route, navigation }) => {
   const { userId, userDoc } = route.params;
@@ -50,24 +51,8 @@ const IntroductionScreen = ({ route, navigation }) => {
 
     const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
 
-    // // Define default meal times based on totalMeals
-    // let mealTimes = [];
-    // if (totalMeals === '2') {
-    //   mealTimes = [
-    //     { name: 'Morning', time: '09:00 AM' },
-    //     { name: 'Evening', time: '08:00 PM' },
-    //   ];
-    // } else if (totalMeals === '3') {
-    //   mealTimes = [
-    //     { name: 'Morning', time: '08:30 AM' },
-    //     { name: 'Afternoon', time: '12:30 PM' },
-    //     { name: 'Evening', time: '08:00 PM' },
-    //   ];
-    // }
-
     try {
       setIsSaving(true);
-
       // Fetch existing user data to avoid unnecessary updates
       const existingUserData = userDoc || (await getUserData(userId));
 
@@ -89,7 +74,7 @@ const IntroductionScreen = ({ route, navigation }) => {
         Alert.alert('Info', 'No changes detected');
       }
 
-      navigation.navigate('Home', { userId });
+      navigation.navigate('Home', { userId, userName: name });
     } catch (error) {
       console.error('Error saving user data:', error);
       Alert.alert('Error', 'Failed to save data. Please try again.');
@@ -100,83 +85,163 @@ const IntroductionScreen = ({ route, navigation }) => {
 
   return (
     <View style={styles.container}>
+      {/* Logo and App Name */}
+      <Image source={require('./2.png')} style={styles.logo} />
+      <Text style={styles.appName}>MedBuddy</Text>
+
       {/* Title */}
-      <Text style={styles.title}>Tell us about yourself</Text>
+      <Text style={styles.title}>Let's Get to Know You! 🎉</Text>
 
       {/* Form Box */}
       <View style={styles.formBox}>
+        {/* Name Input */}
+        <Text style={styles.inputLabel}>Full Name</Text>
         <TextInput
           style={styles.input}
-          placeholder="Name"
+          placeholder="Enter your name"
+          placeholderTextColor="#A8A8A8"
           value={name}
           onChangeText={setName}
         />
+
+        {/* Age Input */}
+        <Text style={styles.inputLabel}>Age</Text>
         <TextInput
           style={styles.input}
-          placeholder="Age"
+          placeholder="e.g. 28"
+          placeholderTextColor="#A8A8A8"
           value={age}
           onChangeText={setAge}
           keyboardType="numeric"
         />
+
+        {/* Gender Picker */}
+        <Text style={styles.inputLabel}>Gender</Text>
         <Picker
           selectedValue={gender}
-          style={styles.input}
+          style={styles.picker}
+          dropdownIconColor="#E94057"
           onValueChange={(itemValue) => setGender(itemValue)}
         >
-          <Picker.Item label="Select Gender" value="" />
-          <Picker.Item label="Male" value="Male" />
-          <Picker.Item label="Female" value="Female" />
-          <Picker.Item label="Other" value="Other" />
+          <Picker.Item label="Select Gender" value="" color="#A8A8A8" />
+          <Picker.Item label="Male" value="Male" color="#2C3E50" />
+          <Picker.Item label="Female" value="Female" color="#2C3E50" />
+          <Picker.Item label="Other" value="Other" color="#2C3E50" />
         </Picker>
+
+        {/* Meal Frequency Picker */}
+        <Text style={styles.inputLabel}>Meal Frequency</Text>
         <Picker
           selectedValue={totalMeals}
-          style={styles.input}
+          style={styles.picker}
+          dropdownIconColor="#E94057"
           onValueChange={(itemValue) => setTotalMeals(itemValue)}
         >
-          <Picker.Item label="2 Meals per Day" value="2" />
-          <Picker.Item label="3 Meals per Day" value="3" />
+          <Picker.Item label="2 Meals per Day" value="2" color="#2C3E50" />
+          <Picker.Item label="3 Meals per Day" value="3" color="#2C3E50" />
         </Picker>
       </View>
 
       {/* Save Button */}
-      <Button title={isSaving ? 'Saving...' : 'Save'} onPress={handleSave} disabled={isSaving} />
+      <TouchableOpacity onPress={handleSave} disabled={isSaving} style={styles.saveButton}>
+        <LinearGradient
+          colors={['#EC4899', '#F97316']}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.gradientButton}
+        >
+          <Text style={styles.buttonText}>{isSaving ? 'Saving...' : 'Save'}</Text>
+        </LinearGradient>
+      </TouchableOpacity>
     </View>
   );
 };
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: 20,
     justifyContent: 'center',
-    backgroundColor: '#121212', // Dark background
+    backgroundColor: '#FFF5F7', // Match HomeScreen's background
+  },
+  logo: {
+    width: 120,
+    height: 120,
+    alignSelf: 'center',
+    marginBottom: 15,
+  },
+  appName: {
+    fontSize: 32,
+    fontWeight: '800',
+    textAlign: 'center',
+    color: '#E94057', // Pinkish accent to match headers
+    marginBottom: 15,
+    letterSpacing: 1.2,
   },
   title: {
-    fontSize: 26,
-    fontWeight: 'bold',
-    marginBottom: 20,
+    fontSize: 24,
+    fontWeight: '700',
+    marginBottom: 25,
+    color: '#2C3E50', // Dark text like HomeScreen
     textAlign: 'center',
-    color: '#FFFFFF', // White color for title
   },
   formBox: {
     width: '100%',
-    backgroundColor: '#1E1E1E', // Darker background for form
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
     padding: 20,
-    borderRadius: 10,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 5,
+    shadowColor: '#E94057',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
     elevation: 5,
     marginBottom: 20,
   },
+  inputLabel: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#2C3E50',
+    marginBottom: 8,
+    marginLeft: 5,
+  },
   input: {
-    borderWidth: 1,
-    borderColor: '#4CAF50', // Green border color
-    padding: 10,
-    marginBottom: 15,
+    borderWidth: 1.5,
+    borderColor: '#E0E0E0',
+    padding: 14,
+    marginBottom: 20,
+    borderRadius: 10,
+    backgroundColor: '#FFFFFF',
+    color: '#2C3E50',
+    fontSize: 16,
+    shadowColor: '#E94057',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  picker: {
+    borderWidth: 1.5,
+    borderColor: '#E0E0E0',
+    marginBottom: 20,
+    borderRadius: 10,
+    backgroundColor: '#FFFFFF',
+    color: '#2C3E50',
+  },
+  saveButton: {
     borderRadius: 5,
-    backgroundColor: '#1E1E1E', // Darker input background
-    color: '#FFFFFF', // White text color
+    overflow: 'hidden',
+    marginTop: 10,
+  },
+  gradientButton: {
+    paddingVertical: 12,
+    paddingHorizontal: 15,
+    borderRadius: 5,
+    alignItems: 'center',
+  },
+  buttonText: {
+    color: '#FFFFFF',
+    fontSize: 18,
+    fontWeight: 'bold',
   },
 });
 

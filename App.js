@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { View, Text, Button, Platform } from "react-native";
+import { View, Text, Button, Platform,Image } from "react-native";
 import { NavigationContainer, useNavigation } from "@react-navigation/native";
 import { createStackNavigator } from "@react-navigation/stack";
 import LoginScreen from "./screens/LoginScreen";
@@ -9,7 +9,7 @@ import IntroductionScreen from "./screens/IntroductionScreen";
 import ManualEntry from "./screens/ManualEntry";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import MealTimeEditScreen from "./mealtime/MealTimeEditScreen";
-import ReminderHistory from "./screens/reminderhistory";
+import Reminderhistory from "./screens/Reminderhistory";
 // Add this import at the top
 import { initializeNotifications, setupNotificationListeners } from './services/notificationService';
 import Constants from 'expo-constants';
@@ -18,33 +18,32 @@ import Constants from 'expo-constants';
 const HomeScreenOptions = ({ navigation, route }) => ({
   title: "MedBuddy",
   headerStyle: {
-    backgroundColor: "#000",
+    backgroundColor: "#FFF5F7", // Match the background color used in HomeScreen
     shadowColor: "transparent",
     elevation: 0,
     height: 80,
     paddingHorizontal: 20,
-  },
-
-  headerTitleStyle: {
+  },headerTitleStyle: {
     fontSize: 24,
     fontWeight: "bold",
-    color: "#4CAF50",
-    alignSelf: "center",
-    paddingLeft: 90,
+    color: "#E94057",
+    left: 0, // Adjust this value to fine-tune title position
   },
-
+ 
   headerLeft: () => (
-    <Ionicons
-      name="person-circle"
-      size={40}
-      color="#4CAF50"
-      style={{ paddingLeft: 20 }}
-      onPress={() =>
-        navigation.navigate("Introduction", { userId: route.params.userId })
-      }
-    />
+    <View style={{ flexDirection: 'row', alignItems: 'center', marginLeft: 10 }}>
+      <Ionicons
+        name="person-circle"
+        size={40}
+        color="#E94057"
+        onPress={() => navigation.navigate("Introduction", { userId: route.params.userId })}
+      />
+      <Image
+        source={require('./screens/2.png')}
+        style={{ width: 40, height: 40, marginLeft: 65 }}
+      />
+    </View>
   ),
-
   headerRight: () => (
     <View style={{ paddingRight: 15 }}>
       <Button
@@ -108,22 +107,23 @@ const App = () => {
   return (
     <NavigationContainer>
       <Stack.Navigator initialRouteName="Login">
-        <Stack.Screen name="Login" component={LoginScreen} />
-        <Stack.Screen name="Signup" component={SignupScreen} />
+        <Stack.Screen name="Login" component={LoginScreen} options={{ headerShown: false }} />
+        <Stack.Screen name="Signup" component={SignupScreen} options={{ headerShown: false }} />
         <Stack.Screen
           name="Introduction"
-          component={IntroductionScreen}
+          component={IntroductionScreen} 
           initialParams={{ userId: null, userDoc: null }}
           options={{
             title: "Introduction",
             headerStyle: { backgroundColor: "#4CAF50" },
             headerTintColor: "#fff",
+            headerShown: false
           }}
         />
         <Stack.Screen
           name="Home"
           component={HomeScreen}
-          initialParams={{ userId: null }}
+          initialParams={{ userId: null, name: null  }}
           options={HomeScreenOptions}
         />
         <Stack.Screen
@@ -133,6 +133,7 @@ const App = () => {
             title: "Add Medication",
             headerStyle: { backgroundColor: "#4CAF50" },
             headerTintColor: "#fff",
+            headerShown: false
           }}
         />
         <Stack.Screen
@@ -142,15 +143,17 @@ const App = () => {
             title: "Edit Meal Times",
             headerStyle: { backgroundColor: "#4CAF50" },
             headerTintColor: "#fff",
+            headerShown: false
           }}
         />
         <Stack.Screen
           name="ReminderHistory"
-          component={ReminderHistory}
+          component={Reminderhistory}
           options={{
             title: "Reminder History",
             headerStyle: { backgroundColor: "#4CAF50" },
             headerTintColor: "#fff",
+            headerShown: false
           }}
         />
       </Stack.Navigator>

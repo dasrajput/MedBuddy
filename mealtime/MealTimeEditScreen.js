@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TextInput, Button, StyleSheet, Alert, ActivityIndicator } from 'react-native';
+import { View, Text, TextInput, Button, StyleSheet, Alert, ActivityIndicator,Image } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
 import { useNavigation, useRoute } from '@react-navigation/native';
+import { LinearGradient } from 'expo-linear-gradient';
+import { TouchableOpacity } from 'react-native';
 
 const MealTimeEditScreen = () => {
   const { userId, updateMealData, initialMealTimes, initialTotalMeals } = useRoute().params;
@@ -74,78 +76,140 @@ const MealTimeEditScreen = () => {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Edit Meal Times</Text>
-
-      <View style={styles.pickerContainer}>
-        <Text style={{ color: '#FFFFFF' }}>Total Meals:</Text>
-        <Picker
-          selectedValue={totalMeals}
-          style={styles.picker}
-          onValueChange={(itemValue) => setTotalMeals(itemValue)}
-        >
-          <Picker.Item label="2 Meals" value={2} />
-          <Picker.Item label="3 Meals" value={3} />
-        </Picker>
-      </View>
-
-      {mealTimes.map((meal, index) => (
-        <View key={index} style={styles.mealContainer}>
-          <Text style={{ color: '#FFFFFF' }}>{meal.name} Meal Time:</Text>
-          <TextInput
-            style={styles.input}
-            value={meal.time}
-            onChangeText={(newTime) => handleMealTimeChange(newTime, index)}
-          />
+      {/* Add logo and header */}
+      <Image source={require('../screens/2.png')} style={styles.logo} />
+      <Text style={styles.appName}>Edit Meal Times</Text>
+  
+      <View style={styles.formBox}>
+        <Text style={styles.inputLabel}>Total Meals</Text>
+        <View style={styles.pickerContainer}>
+          <Picker
+            selectedValue={totalMeals}
+            style={styles.picker}
+            dropdownIconColor="#E94057"
+            onValueChange={(itemValue) => setTotalMeals(itemValue)}
+          >
+            <Picker.Item label="2 Meals" value={2} style={styles.pickerItem} />
+            <Picker.Item label="3 Meals" value={3} style={styles.pickerItem} />
+          </Picker>
         </View>
-      ))}
-
-      
+  
+        {mealTimes.map((meal, index) => (
+          <View key={index} style={styles.mealSlot}>
+            <Text style={styles.mealLabel}>{meal.name} Meal</Text>
+            <TextInput
+              style={styles.timeInput}
+              value={meal.time}
+              placeholder="HH:MM AM/PM"
+              placeholderTextColor="#A8A8A8"
+              onChangeText={(newTime) => handleMealTimeChange(newTime, index)}
+            />
+          </View>
+        ))}
+      </View>
+  
+      {/* Update save button */}
       {navigating ? (
-            <ActivityIndicator size="large" color="#4CAF50" />
-          ) : (
-            <Button title="Save Changes" onPress={handleSave} color="#4CAF50" />
-          )}
+        <ActivityIndicator size="large" color="#E94057" />
+      ) : (
+        <TouchableOpacity style={styles.saveButton} onPress={handleSave}>
+          <LinearGradient
+            colors={['#EC4899', '#F97316']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.gradientButton}
+          >
+            <Text style={styles.buttonText}>Save Changes</Text>
+          </LinearGradient>
+        </TouchableOpacity>
+      )}
     </View>
-  );
-};
+  );};
 
+// Update the StyleSheet
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
     padding: 20,
-    backgroundColor: '#121212', // Dark background
+    backgroundColor: '#FFF5F7',
   },
-  title: {
+  logo: {
+    width: 80,
+    height: 80,
+    alignSelf: 'center',
+    marginBottom: 10,
+  },
+  appName: {
     fontSize: 24,
-    fontWeight: 'bold',
-    marginBottom: 20,
-    color: '#FFFFFF', // White color for title
+    fontWeight: '700',
+    color: '#E94057',
+    textAlign: 'center',
+    marginBottom: 25,
   },
-  pickerContainer: {
-    width: '100%',
+  formBox: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 20,
+    shadowColor: '#E94057',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 5,
     marginBottom: 20,
+  },
+  inputLabel: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#2C3E50',
+    marginBottom: 10,
   },
   picker: {
-    borderWidth: 1,
-    borderColor: '#4CAF50', // Green border color
-    borderRadius: 5,
-    color: '#FFFFFF', // White text color
+    borderWidth: 1.5,
+    borderColor: '#E94057',
+    borderRadius: 8,
+    backgroundColor: '#FFFFFF',
+    marginBottom: 20,
   },
-  mealContainer: {
-    marginBottom: 10,
-    width: '100%',
+  pickerItem: {
+    fontSize: 16,
+    color: '#2C3E50',
   },
-  input: {
-    borderWidth: 1,
-    borderColor: '#4CAF50', // Green border color
-    padding: 10,
+  mealSlot: {
+    borderWidth: 1.5,
+    borderColor: '#E0E0E0',
+    borderRadius: 8,
+    padding: 12,
     marginBottom: 15,
-    borderRadius: 5,
-    backgroundColor: '#1E1E1E', // Darker input background
-    color: '#FFFFFF', // White text color
+    backgroundColor: '#FFFFFF',
+  },
+  mealLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#E94057',
+    marginBottom: 5,
+  },
+  timeInput: {
+    fontSize: 16,
+    color: '#2C3E50',
+    padding: 8,
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
+    borderRadius: 6,
+  },
+  saveButton: {
+    borderRadius: 8,
+    overflow: 'hidden',
+    marginTop: 15,
+  },
+  gradientButton: {
+    paddingVertical: 14,
+    paddingHorizontal: 30,
+    alignItems: 'center',
+  },
+  buttonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '700',
   },
 });
-
 export default MealTimeEditScreen;

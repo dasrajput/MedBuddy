@@ -1,12 +1,12 @@
 {
   "expo": {
+    "newArchEnabled": true,
     "name": "MedBuddy",
     "slug": "MedBuddy",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
-    "newArchEnabled": true,
     "plugins": [
       [
         "expo-image-picker",
@@ -23,12 +23,23 @@
             "./assets/medbuddy.wav"
           ]
         }
+      ],
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Allow $(PRODUCT_NAME) to access your camera",
+          "microphonePermission": "Allow $(PRODUCT_NAME) to access your microphone",
+          "recordAudioAndroid": true
+        }
       ]
     ],
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
+    },
+    "updates": {
+      "enabled": false
     },
     "android": {
       "package": "com.dindayalsingh.medbuddy",
@@ -40,13 +51,18 @@
         "android.permission.RECEIVE_BOOT_COMPLETED",
         "android.permission.VIBRATE",
         "android.permission.SCHEDULE_EXACT_ALARM",
-        "android.permission.RECORD_AUDIO"
+        "android.permission.RECORD_AUDIO",
+        "android.permission.CAMERA"
       ]
     },
     "extra": {
       "eas": {
         "projectId": "1ef0cc3c-8055-4709-a7d1-9d58ce57f096"
       }
+    },
+    "owner": "dindayal2310",
+    "ios": {
+      "bundleIdentifier": "com.dindayalsingh.medbuddy"
     }
   }
 }

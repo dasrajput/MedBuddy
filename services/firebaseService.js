@@ -107,7 +107,7 @@ export const signUp = async (email, password) => {
     } else if (error.code === 'auth/weak-password') {
       return { success: false, message: 'Weak password' };
     } else {
-      return { success: false, message: 'Signup failed. Please try again.' };
+      return { success: false, message: `Signup failed: ${error.message}` };
     }
   }
 };
@@ -131,7 +131,10 @@ export const signIn = async (email, password) => {
     } else {
       console.error('Login error:', error.message);
     }
-    return null;
+    console.error('Login error:', error.message);
+    
+    // Instead of returning null, throw the error so it can be caught by the login screen
+    throw error;
   }
 };
 

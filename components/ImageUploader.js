@@ -5,27 +5,8 @@ import axios from 'axios';
 import OcrLoader from './OcrLoader'; // Import the OcrLoader component
 import { useNavigation } from '@react-navigation/native';
 import PropTypes from 'prop-types';
-import { NetworkInfo } from 'react-native-network-info';
 import * as Network from 'expo-network';
-
-// Fixed Zeroconf initialization
-let zeroconfInstance = null;
-
-const initializeZeroconf = async () => {
-  if (!zeroconfInstance) {
-    const { Zeroconf } = require('react-native-zeroconf');
-    zeroconfInstance = new Zeroconf();
-    
-    // Get actual local IP
-    const localIP = await NetworkInfo.getIPV4Address();
-    zeroconfInstance.setLocalAddress(localIP);
-    
-    // Required for Android
-    zeroconfInstance.init();
-  }
-  return zeroconfInstance;
-};
-
+import { LinearGradient } from 'expo-linear-gradient'; // Import LinearGradient
 
 const ImageUploader = ({ userId, onResult, ocrResults }) => {
   const [showLoader, setShowLoader] = useState(false);
@@ -44,28 +25,39 @@ const ImageUploader = ({ userId, onResult, ocrResults }) => {
       // Actual upload logic
       const responseData = await uploadImage(imageUri);
       
-      if (!responseData.schedule) {
+      if (responseData.detection_status === 'no_schedule_detected') {
+        Alert.alert(
+          'No Schedule Detected',
+          'No medication schedule was detected in the image. You can create a reminder manually.',
+          [
+            {
+              text: 'OK',
+              onPress: () => {
+                navigation.navigate('ManualEntry', {
+                  userId,
+                  ocrResults: responseData,
+                  refreshReminders: true
+                });
+              }
+            }
+          ]
+        );
+      } else if (!responseData.schedule) {
         throw new Error('Invalid server response');
+      } else {
+        navigation.navigate('ManualEntry', {
+          userId,
+          ocrResults: responseData,
+          refreshReminders: true
+        });
       }
-
-      navigation.navigate('ManualEntry', {
-        userId,
-        ocrResults: responseData,
-        refreshReminders: true
-      });
-
+  
     } catch (error) {
       Alert.alert('Upload Failed', error.message);
     } finally {
       setShowLoader(false);
     }
   };
-  
-  console.log('Navigation Params:', {
-    userId,
-    ocrResults: ocrResults,
-    refreshReminders: true
-  });
 
   useEffect(() => {
     (async () => {
@@ -157,14 +149,35 @@ const ImageUploader = ({ userId, onResult, ocrResults }) => {
           )}
           <View style={styles.buttonRow}>
             <TouchableOpacity style={styles.button} onPress={pickImage}>
-              <Text style={styles.buttonText}>Pick Image</Text>
+              <LinearGradient
+                colors={['#EC4899', '#F97316']} // Pink to Orange gradient
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.gradientButton}
+              >
+                <Text style={styles.buttonText}>Pick Image</Text>
+              </LinearGradient>
             </TouchableOpacity>
             <TouchableOpacity style={styles.button} onPress={takePicture}>
-              <Text style={styles.buttonText}>Take Picture</Text>
+              <LinearGradient
+                colors={['#EC4899', '#F97316']} // Pink to Orange gradient
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.gradientButton}
+              >
+                <Text style={styles.buttonText}>Take Picture</Text>
+              </LinearGradient>
             </TouchableOpacity>
             <View style={styles.centerButton}>
               <TouchableOpacity style={styles.button} onPress={handleUploadImage} disabled={!imageUri}>
-                <Text style={styles.buttonText}>Upload Image</Text>
+                <LinearGradient
+                  colors={['#EC4899', '#F97316']} // Pink to Orange gradient
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={styles.gradientButton}
+                >
+                  <Text style={styles.buttonText}>Upload Image</Text>
+                </LinearGradient>
               </TouchableOpacity>
             </View>
           </View>
@@ -213,12 +226,15 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   button: {
-    backgroundColor: '#4CAF50',
+    borderRadius: 10,
+    overflow: 'hidden',
+    marginBottom: 10,
+  },
+  gradientButton: {
     paddingVertical: 12,
     paddingHorizontal: 15,
     borderRadius: 10,
     alignItems: 'center',
-    marginBottom: 10,
   },
   buttonText: {
     color: '#fff',
@@ -227,7 +243,6 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   centerButton: {
-
     paddingLeft: 50,
   },
 });

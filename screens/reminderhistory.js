@@ -4,8 +4,11 @@ import { firestore } from '../firebaseConfig'; // Adjust the import based on you
 import { query, collection, where, getDocs, deleteDoc, doc, getDoc } from 'firebase/firestore';
 import dayjs from 'dayjs';
 import { cancelNotification } from '../services/notificationService';
+import { LinearGradient } from 'expo-linear-gradient';
+import { Image } from 'react-native';
 
-const reminderhistory = ({ route }) => {
+
+const Reminderhistory = ({ route }) => {
   const { userId } = route.params; // Get userId from route params
   const [history, setHistory] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -94,66 +97,62 @@ const reminderhistory = ({ route }) => {
 
   return (
     <View style={styles.container}>
-        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', width: '100%', paddingHorizontal: 10 }}>
-        <Text style={styles.title}>Reminder History</Text>
+      <View style={styles.headerContainer}>
+        <Text style={styles.screenTitle}>Reminder History</Text>
         {deleting ? (
-            <ActivityIndicator size="large" color="#4CAF50" />
+          <ActivityIndicator size="large" color="#E94057" />
         ) : (
-            <TouchableOpacity onPress={deleteAllReminders} style={styles.deleteButton}>
-                <Text style={styles.deleteButtonText}>Delete All</Text>
-            </TouchableOpacity>
+          <TouchableOpacity onPress={deleteAllReminders} style={styles.deleteButton}>
+            <LinearGradient
+              colors={['#EC4899', '#F97316']}
+              style={styles.gradientButton}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+            >
+              <Text style={styles.deleteButtonText}>Delete All</Text>
+            </LinearGradient>
+          </TouchableOpacity>
         )}
-        </View>
+      </View>
 
-      
-        {loading ? (
+      {loading ? (
         <ActivityIndicator size="large" color="#4CAF50" />
-        ) : history.length === 0 ? ( // Check if history is empty
-        <Text style={styles.noRemindersText}>No Reminders</Text> // Display message if no reminders
-        ) : (
-            <View styles={{ width: '100%',height: '100%',marginBottom: '150'}}>
-            <FlatList
-              data={history}
-              keyExtractor={(item) => item.id}
-              renderItem={({ item }) => (
-                <View style={styles.reminderCard}>
-                  <View style={styles.cardContent}>
-                    {/* Left Section */}
-                    <View style={styles.infoContainer}>
-                      <Text style={styles.reminderText}>
-                        {item.medicineName} - {item.pills} Pills
-                      </Text>
-                      <Text style={[
-                        styles.reminderStatus,
-                        item.status === 'cancelled' ? styles.cancelled : styles.completed
-                      ]}>
-                        {item.status}
-                      </Text>
-                    </View>
-
-                    {/* Right Section */}
-                    <View style={styles.timeContainer}>
-                      <Text style={styles.historyDate}>
-                        {dayjs(item.reminderDate).format('DD MMM YYYY')}
-                      </Text>
-                      <Text style={styles.historyTime}>
-                        {item.reminderTime}
-                      </Text>
-                    </View>
-                    
-                    {/* Delete button for individual reminder */}
-                    <TouchableOpacity 
-                      onPress={() => deleteReminder(item.id)} 
-                      style={styles.itemDeleteButton}
-                    >
-                      <Text style={styles.itemDeleteButtonText}>×</Text>
-                    </TouchableOpacity>
-                  </View>
-                </View>
-              )}
-            />
+      ) : history.length === 0 ? (
+        <Text style={styles.noRemindersText}>No Reminders Found</Text>
+      ) : (
+        <FlatList
+          data={history}
+          keyExtractor={(item) => item.id}
+          contentContainerStyle={styles.listContainer}
+          renderItem={({ item }) => (
+            <View style={styles.reminderCard}>
+              <View style={styles.cardLeft}>
+                <Text style={styles.medicineName}>{item.medicineName}</Text>
+                <Text style={styles.pillCount}>{item.pills} Pills</Text>
+                <Text style={[
+                  styles.statusText,
+                  item.status === 'cancelled' ? styles.cancelled : styles.completed
+                ]}>
+                  {item.status}
+                </Text>
+              </View>
+              
+              <View style={styles.cardRight}>
+                <Text style={styles.timeText}>{item.reminderTime}</Text>
+                <Text style={styles.dateText}>
+                  {dayjs(item.reminderDate).format('MMM D, YYYY')}
+                </Text>
+                <TouchableOpacity 
+                  style={styles.deleteIcon} 
+                  onPress={() => deleteReminder(item.id)}
+                >
+                  <Text style={styles.deleteIconText}>×</Text>
+                </TouchableOpacity>
+              </View>
             </View>
-        )}
+          )}
+        />
+      )}
     </View>
   );
 };
@@ -161,98 +160,116 @@ const reminderhistory = ({ route }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 16,
-    backgroundColor: '#121212',
+    padding: 20,
+    paddingTop: 30, // Added top padding
+    backgroundColor: '#FFF5F7',
   },
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    marginBottom: 20,
-    color: '#4CAF50',
-  },
-  noRemindersText: {
-    fontSize: 18,
-    color: '#888888',
-    textAlign: 'center', // Center the text
-    marginTop: 20, // Add some margin for spacing
-  },
-  reminderCard: {
-    backgroundColor: '#1E1E1E',
-    borderRadius: 12,
-    padding: 16,
-    marginVertical: 8,
-    width: '100%',
-    elevation: 3,
-  },
-  cardContent: {
+  headerContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    position: 'relative',
+    marginBottom: 15,
+    marginTop: 15,
+    paddingHorizontal: 10,
   },
-  infoContainer: {
+  screenTitle: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: '#E94057',
+    marginLeft: 8, // Balanced spacing
+  },
+  reminderCard: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12, // Increased border radius
+    padding: 18, // Increased padding
+    marginBottom: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 6, // Softer shadow
+    elevation: 3,
+  },
+  cardLeft: {
     flex: 1,
-    marginRight: 16,
+    marginRight: 10,
   },
-  reminderText: {
+  cardRight: {
+    alignItems: 'flex-end',
+  },
+  medicineName: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#FFFFFF',
-    marginBottom: 4,
+    color: '#2C3E50',
+    marginBottom: 6, // Increased spacing
   },
-  reminderStatus: {
+  pillCount: {
+    fontSize: 14,
+    color: '#888888',
+    marginBottom: 6,
+  },
+  statusText: {
     fontSize: 14,
     fontWeight: '500',
-    textTransform: 'capitalize',
   },
+  timeText: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#2C3E50',
+    marginBottom: 6, // Consistent spacing
+  },
+  dateText: {
+    fontSize: 14,
+    color: '#888888',
+    marginBottom: 6,
+  },
+  deleteIcon: {
+    backgroundColor: '#E94057',
+    borderRadius: 12,
+    width: 24,
+    height: 24,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  deleteIconText: {
+    color: 'white',
+    fontSize: 18,
+    lineHeight: 20,
+  },
+  deleteButton: {
+    borderRadius: 8,
+    overflow: 'hidden',
+  },
+  gradientButton: {
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+  },
+  deleteButtonText: {
+    color: '#FFFFFF',
+    fontWeight: 'bold',
+  },
+  itemDeleteButton: {
+    backgroundColor: '#E94057',
+    borderRadius: 15,
+    width: 30,
+    height: 30,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  noRemindersText: {
+    fontSize: 18,
+    color: '#2C3E50',
+    textAlign: 'center',
+    marginTop: 40,
+  },
+  // Keep other existing styles but update colors to match theme
   cancelled: {
     color: '#FF5252',
   },
   completed: {
     color: '#4CAF50',
   },
-  timeContainer: {
-    alignItems: 'flex-end',
-    minWidth: 100,
-  },
-  historyDate: {
-    fontSize: 14,
-    color: '#888888',
-    fontFamily: 'Roboto-Medium',
-    marginBottom: 4,
-  },
-  historyTime: {
-    fontSize: 15,
-    color: '#FFFFFF',
-    fontFamily: 'Roboto-Bold',
-  },
-  deleteButton: {
-    marginLeft: 'auto', // Align to the right
-    padding: 10,
-    backgroundColor: '#FF0000', // Red color for delete action
-    borderRadius: 5,
-  },
-  deleteButtonText: {
-    color: '#FFFFFF', // White text for contrast
-    fontWeight: 'bold',
-  },
-  itemDeleteButton: {
-    position: 'absolute',
-    right: -10,
-    top: -10,
-    backgroundColor: '#FF5252',
-    borderRadius: 15,
-    width: 30,
-    height: 30,
-    justifyContent: 'center',
-    alignItems: 'center',
-    zIndex: 1,
-  },
-  itemDeleteButtonText: {
-    color: '#FFFFFF',
-    fontSize: 20,
-    fontWeight: 'bold',
-  },
 });
 
-export default reminderhistory;
+export default Reminderhistory;

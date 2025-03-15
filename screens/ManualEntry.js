@@ -24,24 +24,38 @@ import { initializeNotifications, setupNotificationListeners } from '../services
 // Add these imports at the top
 import { doc, updateDoc } from 'firebase/firestore';
 import { firestore } from '../firebaseConfig';
-
+import { LinearGradient } from 'expo-linear-gradient';
 
 const ToggleButtonGroup = ({ options, selected, onSelect, style }) => (
   <View style={[styles.toggleContainer, style]}>
-    {options.map((option) => (
-      <TouchableOpacity
-        key={option.value}
-        style={[
-          styles.toggleButton,
-          selected === option.value && styles.selectedToggle
-        ]}
-        onPress={() => onSelect(option.value)}
-      >
-        <Text style={styles.toggleButtonText}>
-          {option.label}
-        </Text>
-      </TouchableOpacity>
-    ))}
+    {options.map((option) => {
+  const isSelected = selected === option.value;
+  return (
+    <TouchableOpacity
+      key={option.value}
+      style={[
+        styles.toggleButton,
+        isSelected && styles.selectedToggle
+      ]}
+      onPress={() => onSelect(option.value)}
+    >
+      {isSelected ? (
+        <LinearGradient
+          colors={['#EC4899', '#F97316']}
+          style={StyleSheet.absoluteFill}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+        />
+      ) : null}
+      <Text style={[
+        styles.toggleButtonText,
+        isSelected && { color: 'white' }
+      ]}>
+        {option.label}
+      </Text>
+    </TouchableOpacity>
+  );
+})}
   </View>
 );
 
@@ -88,7 +102,7 @@ const ManualEntry = ({ route }) => {
 
   useEffect(() => {
     console.log('Received OCR Results:', route.params?.ocrResults);
-    
+
     if (route.params?.ocrResults?.schedule) {
       Alert.alert('OCR Data Loaded', 'Auto-filling detected schedule');
     }
@@ -116,7 +130,7 @@ const ManualEntry = ({ route }) => {
           mealRelation: ocrResults.meal_relation || 'before',
           timingType: 'meal'
         }));
-      
+
       // Fallback to default if no valid schedules
       setSchedules(validSchedules.length > 0 ? validSchedules : [{
         timeLabel: 'morning',
@@ -136,10 +150,26 @@ const ManualEntry = ({ route }) => {
   useEffect(() => {
     // Access CORRECT property name
     const receivedData = route.params?.ocrResults;
-    
+
     if (receivedData?.schedule) {
       console.log('Valid OCR Data:', receivedData);
-      Alert.alert('Schedule Loaded', `Found ${receivedData.schedule.length} entries`);
+
+      if (receivedData?.schedule) {
+        console.log('Valid OCR Data:', receivedData);}
+      
+      // Check if there's a detection_status indicating no schedule detected
+      if (receivedData.detection_status === 'no_schedule_detected') {
+        Alert.alert('No Schedule Detected', 'No medication schedule was detected in the image. Please create a reminder manually.');
+      } else {
+        // Filter out entries with 0 pills
+        const validEntries = receivedData.schedule.filter(entry => entry.pills > 0);
+        console.log('Valid entries:', validEntries);
+        if (validEntries.length > 0) {
+          Alert.alert('Schedule Loaded', `Found ${validEntries.length} valid entries`);
+        } else {
+          Alert.alert('No Valid Schedule', 'No valid pill quantities were detected. Please create a reminder manually.');
+        }
+      }
     }
   }, [route.params]);
 
@@ -148,7 +178,7 @@ const ManualEntry = ({ route }) => {
       if (timingType === 'meal' && mealTimesFromData.length > 0) {
         const calculatedTime = calculateMealTime();
         const now = new Date();
-        
+
         // Determine if we should use today or tomorrow
         const isTodayValid = calculatedTime > now;
         const defaultDateOption = isTodayValid ? 'today' : 'tomorrow';
@@ -159,7 +189,7 @@ const ManualEntry = ({ route }) => {
           { value: 'tomorrow', label: 'Tomorrow' },
           { value: 'custom', label: 'Custom Date' }
         ]);
-        
+
         setSelectedDateOption(defaultDateOption);
         setAutoDate(defaultDate);
         setReminderDate(defaultDate);
@@ -182,26 +212,26 @@ const ManualEntry = ({ route }) => {
   useEffect(() => {
     const calculateReminderTime = () => {
       const currentSchedule = schedules[0];
-      
+
       // Find matching meal time
-      const selectedMeal = mealTimesFromData.find(meal => 
+      const selectedMeal = mealTimesFromData.find(meal =>
         meal.name.toLowerCase() === currentSchedule.timeLabel
       );
-      
+
       if (selectedMeal) {
         let baseTime = parseMealTime(selectedMeal.time);
-        
+
         // Apply offsets based on meal relation
         if (currentSchedule.mealRelation === 'before') {
           baseTime.setMinutes(baseTime.getMinutes() - 15); // 15 mins before meal
         } else {
           baseTime.setMinutes(baseTime.getMinutes() + 30); // 30 mins after meal
         }
-        
+
         // Preserve existing date components
         const newTime = new Date(reminderDate);
         newTime.setHours(baseTime.getHours(), baseTime.getMinutes());
-        
+
         setReminderTime(newTime);
       }
     };
@@ -213,7 +243,7 @@ const ManualEntry = ({ route }) => {
     setSelectedDateOption(option);
     let newDate = new Date();
 
-    switch(option) {
+    switch (option) {
       case 'today':
         newDate = autoDate;
         break;
@@ -224,7 +254,7 @@ const ManualEntry = ({ route }) => {
         setShowDatePicker(true);
         return;
     }
-    
+
     // Preserve time components when changing dates
     newDate.setHours(reminderDate.getHours());
     newDate.setMinutes(reminderDate.getMinutes());
@@ -234,7 +264,7 @@ const ManualEntry = ({ route }) => {
   const parseMealTime = (timeStr) => {
     const [time, period] = timeStr.split(' ');
     const [hoursStr, minutesStr] = time.split(':');
-    
+
     let hours = parseInt(hoursStr);
     const minutes = parseInt(minutesStr);
 
@@ -245,14 +275,14 @@ const ManualEntry = ({ route }) => {
     // Create Date object with today's date
     const date = new Date();
     date.setHours(hours, minutes, 0, 0);
-    
+
     return date;
   };
 
   const getHardcodedTime = (timeLabel, mealRelation) => {
-    console.log('[DEBUG] Input values:', { 
-      timeLabel, 
-      mealRelation 
+    console.log('[DEBUG] Input values:', {
+      timeLabel,
+      mealRelation
     });
 
     const timeMap = {
@@ -272,7 +302,7 @@ const ManualEntry = ({ route }) => {
 
     const normalizedLabel = (timeLabel || 'morning').toLowerCase().trim();
     const normalizedRelation = (mealRelation || 'before').toLowerCase().trim();
-    
+
     console.log('[DEBUG] Normalized values:', {
       normalizedLabel,
       normalizedRelation
@@ -280,194 +310,194 @@ const ManualEntry = ({ route }) => {
 
     const result = timeMap[normalizedLabel]?.[normalizedRelation] || '8:15 AM';
     console.log('[DEBUG] Calculated time:', result);
-    
+
     return result;
   };
 
   const convertToISO = (timeStr) => {
     console.log('[CONVERT] Input time:', timeStr);
-    
+
     const [time, period] = timeStr.split(' ');
     let [hours, minutes] = time.split(':').map(Number);
-    
+
     console.log('[CONVERT] Parsed:', { hours, minutes, period });
 
     if (period === 'PM' && hours !== 12) hours += 12;
     if (period === 'AM' && hours === 12) hours = 0;
-    
+
     const date = new Date();
     date.setHours(hours, minutes, 0, 0);
-    
+
     console.log('[CONVERT] Initial date:', date.toISOString());
 
     if (date < new Date()) {
       console.log('[CONVERT] Time in past, adding 1 day');
       date.setDate(date.getDate() + 1);
     }
-    
+
     console.log('[CONVERT] Final ISO date:', date.toISOString());
     return date.toISOString();
   };
 
 
   // Modify the handleSave function to schedule notifications
-    // Modify the handleSave function to schedule notifications
-    const handleSave = async () => {
-      try {
-        const userName = await getUserName(userId);
-        const validSchedules = schedules.filter(schedule => {
-          const isValid = parseInt(schedule.pills) > 0;
-          if (!isValid) console.warn('[SAVE] Invalid schedule:', schedule);
-          return isValid;
-        });
-  
-        if (validSchedules.length === 0) {
-          throw new Error('Please add at least 1 pill to each schedule');
+  // Modify the handleSave function to schedule notifications
+  const handleSave = async () => {
+    try {
+      const userName = await getUserName(userId);
+      const validSchedules = schedules.filter(schedule => {
+        const isValid = parseInt(schedule.pills) > 0;
+        if (!isValid) console.warn('[SAVE] Invalid schedule:', schedule);
+        return isValid;
+      });
+
+      if (validSchedules.length === 0) {
+        throw new Error('Please add at least 1 pill to each schedule');
+      }
+
+      console.log('[SAVE] Starting save process with schedules:', schedules);
+
+      const reminders = schedules.map((schedule, index) => {
+        // Default values
+        let reminderTime = getHardcodedTime(
+          schedule.timeLabel,
+          schedule.mealRelation
+        );
+
+        let reminderDate = dayjs(new Date()).format('YYYY-MM-DD');
+
+        // If custom date was selected, use that instead
+        if (selectedDateOption === 'custom') {
+          reminderDate = dayjs(date).format('YYYY-MM-DD');
+        } else if (selectedDateOption === 'tomorrow') {
+          reminderDate = dayjs().add(1, 'day').format('YYYY-MM-DD');
         }
-  
-        console.log('[SAVE] Starting save process with schedules:', schedules);
-  
-        const reminders = schedules.map((schedule, index) => {
-          // Default values
-          let reminderTime = getHardcodedTime(
-            schedule.timeLabel,
-            schedule.mealRelation
-          );
-  
-          let reminderDate = dayjs(new Date()).format('YYYY-MM-DD');
-  
-          // If custom date was selected, use that instead
-          if (selectedDateOption === 'custom') {
-            reminderDate = dayjs(date).format('YYYY-MM-DD');
-          } else if (selectedDateOption === 'tomorrow') {
-            reminderDate = dayjs().add(1, 'day').format('YYYY-MM-DD');
-          }
-  
-          // If custom time was selected, use that instead of the hardcoded time
-          let scheduledTime;
-          if (timingType === 'custom') {
-            // Format the time for display
-            reminderTime = dayjs(time).format('h:mm A');
-  
-            // Create a combined date and time for the scheduledTime
-            const combinedDateTime = new Date();
-  
-            // Parse the date
-            const [year, month, day] = reminderDate.split('-').map(Number);
-            combinedDateTime.setFullYear(year, month - 1, day);
-  
-            // Set the time components
-            combinedDateTime.setHours(time.getHours(), time.getMinutes(), 0, 0);
-  
-            scheduledTime = combinedDateTime.toISOString();
-            console.log('[SAVE] Custom time scheduled:', scheduledTime);
-          } else {
-            // Use the existing conversion for meal-based timing
-            scheduledTime = convertToISO(reminderTime);
-          }
-  
-          console.log(`[SAVE] Schedule ${index + 1}:`, {
-            timeLabel: schedule.timeLabel,
-            mealRelation: schedule.mealRelation,
-            calculatedTime: reminderTime,
-            reminderDate: reminderDate,
-            scheduledTime: scheduledTime
-          });
-  
-          return {
-            userId,
-            userName,
-            medicineName: typeof medicineName === 'string' ? medicineName : 'Medication',
-            timeLabel: schedule.timeLabel,
-            pills: schedule.pills,
-            mealRelation: schedule.mealRelation,
-            reminderTime,
-            reminderDate,
-            scheduledTime,
-            status: 'active'
-          };
+
+        // If custom time was selected, use that instead of the hardcoded time
+        let scheduledTime;
+        if (timingType === 'custom') {
+          // Format the time for display
+          reminderTime = dayjs(time).format('h:mm A');
+
+          // Create a combined date and time for the scheduledTime
+          const combinedDateTime = new Date();
+
+          // Parse the date
+          const [year, month, day] = reminderDate.split('-').map(Number);
+          combinedDateTime.setFullYear(year, month - 1, day);
+
+          // Set the time components
+          combinedDateTime.setHours(time.getHours(), time.getMinutes(), 0, 0);
+
+          scheduledTime = combinedDateTime.toISOString();
+          console.log('[SAVE] Custom time scheduled:', scheduledTime);
+        } else {
+          // Use the existing conversion for meal-based timing
+          scheduledTime = convertToISO(reminderTime);
+        }
+
+        console.log(`[SAVE] Schedule ${index + 1}:`, {
+          timeLabel: schedule.timeLabel,
+          mealRelation: schedule.mealRelation,
+          calculatedTime: reminderTime,
+          reminderDate: reminderDate,
+          scheduledTime: scheduledTime
         });
-  
-        console.log('[SAVE] Final reminders to save:', reminders);
-  
-        // Save reminders to Firestore and schedule notifications
-        setLoading(true);
-        const savedReminders = await Promise.all(reminders.map(async reminder => {
-          try {
-            // Save to Firestore first
-            const savedReminderId = await saveReminder(userId, reminder);
-            console.log('[SAVE] Saved reminder with ID:', savedReminderId);
-            
-            if (!savedReminderId) {
-              console.error('[SAVE] Failed to get reminder ID');
-              return null;
-            }
-  
-            // Schedule notification with proper error handling
-            let notificationId = null;
-            try {
-              notificationId = await scheduleNotification({
-                ...reminder,
-                id: savedReminderId,
-                userId
-              });
-              console.log('[NOTIFICATION] Scheduled with ID:', notificationId);
-            } catch (notifError) {
-              console.error('[NOTIFICATION] Scheduling failed:', notifError);
-            }
-  
-            // Update the reminder with the notification ID if we got one
-            if (notificationId && savedReminderId) {
-              try {
-                const reminderRef = doc(firestore, 'reminders', savedReminderId);
-                await updateDoc(reminderRef, { notificationId });
-                console.log('[SAVE] Updated reminder with notification ID');
-              } catch (updateError) {
-                console.error('[SAVE] Failed to update reminder with notification ID:', updateError);
-              }
-            }
-  
-            return savedReminderId;
-          } catch (reminderError) {
-            console.error('[SAVE] Error processing reminder:', reminderError);
+
+        return {
+          userId,
+          userName,
+          medicineName: typeof medicineName === 'string' ? medicineName : 'Medication',
+          timeLabel: schedule.timeLabel,
+          pills: schedule.pills,
+          mealRelation: schedule.mealRelation,
+          reminderTime,
+          reminderDate,
+          scheduledTime,
+          status: 'active'
+        };
+      });
+
+      console.log('[SAVE] Final reminders to save:', reminders);
+
+      // Save reminders to Firestore and schedule notifications
+      setLoading(true);
+      const savedReminders = await Promise.all(reminders.map(async reminder => {
+        try {
+          // Save to Firestore first
+          const savedReminderId = await saveReminder(userId, reminder);
+          console.log('[SAVE] Saved reminder with ID:', savedReminderId);
+
+          if (!savedReminderId) {
+            console.error('[SAVE] Failed to get reminder ID');
             return null;
           }
-        }));
-  
-        setLoading(false);
-        
-        // Filter out any null values from failed saves
-        const successfulSaves = savedReminders.filter(id => id !== null);
 
+          // Schedule notification with proper error handling
+          let notificationId = null;
+          try {
+            notificationId = await scheduleNotification({
+              ...reminder,
+              id: savedReminderId,
+              userId
+            });
+            console.log('[NOTIFICATION] Scheduled with ID:', notificationId);
+          } catch (notifError) {
+            console.error('[NOTIFICATION] Scheduling failed:', notifError);
+          }
 
-        // In your handleSave function, modify the Alert.alert section:
-
-        if (successfulSaves.length > 0) {
-          // Set the navigation flag before showing the alert
-          console.log('[NAVIGATION] Setting navigation flag before alert');
-          setNavigatingFlag(true);
-
-          Alert.alert('Success', `${successfulSaves.length} reminder(s) saved successfully`, [
-            {
-              text: 'OK',
-              onPress: () => {
-                console.log('[NAVIGATION] Alert dismissed, navigating to Home');
-                // Add a small delay before navigation to ensure notification handling is complete
-                setTimeout(() => {
-                  navigation.navigate('Home', { userId, refresh: true });
-                }, 300);
-              }
+          // Update the reminder with the notification ID if we got one
+          if (notificationId && savedReminderId) {
+            try {
+              const reminderRef = doc(firestore, 'reminders', savedReminderId);
+              await updateDoc(reminderRef, { notificationId });
+              console.log('[SAVE] Updated reminder with notification ID');
+            } catch (updateError) {
+              console.error('[SAVE] Failed to update reminder with notification ID:', updateError);
             }
-          ]);
-        } else {
-          Alert.alert('Warning', 'No reminders were saved successfully');
+          }
+
+          return savedReminderId;
+        } catch (reminderError) {
+          console.error('[SAVE] Error processing reminder:', reminderError);
+          return null;
         }
-      } catch (error) {
-        console.error('[ERROR] Save failed:', error);
-        setLoading(false);
-        Alert.alert('Error', `Save failed: ${error.message}`);
+      }));
+
+      setLoading(false);
+
+      // Filter out any null values from failed saves
+      const successfulSaves = savedReminders.filter(id => id !== null);
+
+
+      // In your handleSave function, modify the Alert.alert section:
+
+      if (successfulSaves.length > 0) {
+        // Set the navigation flag before showing the alert
+        console.log('[NAVIGATION] Setting navigation flag before alert');
+        setNavigatingFlag(true);
+
+        Alert.alert('Success', `${successfulSaves.length} reminder(s) saved successfully`, [
+          {
+            text: 'OK',
+            onPress: () => {
+              console.log('[NAVIGATION] Alert dismissed, navigating to Home');
+              // Add a small delay before navigation to ensure notification handling is complete
+              setTimeout(() => {
+                navigation.navigate('Home', { userId, refresh: true });
+              }, 300);
+            }
+          }
+        ]);
+      } else {
+        Alert.alert('Warning', 'No reminders were saved successfully');
       }
-    };
+    } catch (error) {
+      console.error('[ERROR] Save failed:', error);
+      setLoading(false);
+      Alert.alert('Error', `Save failed: ${error.message}`);
+    }
+  };
 
   const updateSchedule = (index, field, value) => {
     console.log('[SCHEDULE UPDATE]', { index, field, value });
@@ -518,28 +548,37 @@ const ManualEntry = ({ route }) => {
   const DateSelector = ({ options, selected, onSelect }) => (
     <View style={styles.dateOptionContainer}>
       {options.map((option) => (
-        <TouchableOpacity
-          key={option.value}
-          onPress={() => !option.disabled && onSelect(option.value)}
-          style={[
-            styles.dateOptionButton,
-            selected === option.value && styles.activeDateOption,
-            option.disabled && styles.disabledOption
-          ]}
-          disabled={option.disabled}
-        >
-          <Text style={[
-            styles.dateOptionText,
-            option.disabled && styles.disabledText
-          ]}>
-            {option.label}
-          </Text>
-        </TouchableOpacity>
-      ))}
+  <TouchableOpacity
+    key={option.value}
+    onPress={() => !option.disabled && onSelect(option.value)}
+    style={[
+      styles.dateOptionButton,
+      selected === option.value && styles.activeDateOption,
+      option.disabled && styles.disabledOption
+    ]}
+    disabled={option.disabled}
+  >
+    {selected === option.value && (
+      <LinearGradient
+        colors={['#EC4899', '#F97316']}
+        style={StyleSheet.absoluteFill}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+      />
+    )}
+    <Text style={[
+      styles.dateOptionText,
+      option.disabled && styles.disabledText,
+      selected === option.value && styles.selectedDateText
+    ]}>
+      {option.label}
+    </Text>
+  </TouchableOpacity>
+))}
     </View>
   );
 
-  
+
 
   const onDateChange = (event, selectedDate) => {
     setShowDatePicker(false);
@@ -557,7 +596,7 @@ const ManualEntry = ({ route }) => {
     }
   };
 
-  
+
 
   return (
     <KeyboardAvoidingView
@@ -568,18 +607,23 @@ const ManualEntry = ({ route }) => {
         contentContainerStyle={styles.scrollContainer}
         keyboardShouldPersistTaps="handled"
       >
-        <Text style={styles.title}>Add Reminder</Text>
-        
+        <LinearGradient
+  colors={['#FF6B6B', '#FF8E53']}
+  style={styles.gradientContainer}
+>
+  <Text style={styles.title}>Add Reminder</Text>
+</LinearGradient>
         {/* Medicine Name Input */}
+        <Text style={styles.medicineLabel}>Medicine Name :</Text>
         <TextInput
-          style={styles.input}
-          placeholder="Medicine Name"
-          placeholderTextColor="#666"
+          style={styles.medicineInput}
+          placeholder="Enter medicine name (e.g. Paracetamol"
+          placeholderTextColor="#A0AEC0"
           value={medicineName}
           onChangeText={setMedicineName}
           defaultValue="Medicine A"
         />
-        
+
         {ocrResults?.schedule && (
           <View style={styles.schedulePreview}>
             <Text style={styles.ocrNotice}>Detected Schedule:</Text>
@@ -598,28 +642,35 @@ const ManualEntry = ({ route }) => {
           .filter(schedule => parseInt(schedule.pills) > 0)
           .map((schedule, index) => (
             <View key={index} style={styles.scheduleCard}>
-              <TouchableOpacity 
+              <TouchableOpacity
                 onPress={() => removeSchedule(index)}
-                style={styles.removeButton}
+                style={[styles.removeButton]}
               >
-                <Text style={styles.removeButtonText}>×</Text>
+                <LinearGradient
+                  colors={['#EC4899', '#F97316']}
+                  style={StyleSheet.absoluteFill}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                />
+                <Text style={[styles.removeButtonText, { color: 'white' }]}>×</Text>
               </TouchableOpacity>
-              
-              <Text style={styles.scheduleTitle}>{schedule.timeLabel} Schedule</Text>
-              
-              <Text style={styles.label}>Time of Day</Text>
-              <ToggleButtonGroup
-                options={[
-                  { label: 'Morning', value: 'morning' },
-                  { label: 'Afternoon', value: 'afternoon' },
-                  { label: 'Evening', value: 'evening' }
-                ]}
-                selected={schedule.timeLabel}
-                onSelect={value => updateSchedule(index, 'timeLabel', value)}
-                style={{ marginBottom: 15 }}
-              />
 
-              <Text style={styles.label}>Timing Type</Text>
+              <Text style={styles.scheduleTitle}>{schedule.timeLabel} Schedule</Text>
+
+              <View style={{ marginBottom: 16 }}>
+                <Text style={styles.label}>SELECT TIME OF DAY</Text>
+                <ToggleButtonGroup
+                  options={[
+                    { label: 'Morning', value: 'morning' },
+                    { label: 'Afternoon', value: 'afternoon' },
+                    { label: 'Evening', value: 'evening' }
+                  ]}
+                  selected={schedule.timeLabel}
+                  onSelect={value => updateSchedule(index, 'timeLabel', value)}
+                  style={{ marginBottom: 15 }}
+                /></View>
+
+              <Text style={styles.label}>TIMING TYPE</Text>
               <ToggleButtonGroup
                 options={[
                   { label: 'Meal-based', value: 'meal' },
@@ -631,16 +682,16 @@ const ManualEntry = ({ route }) => {
               />
 
               <View style={styles.section}>
-                <Text style={styles.label}>Reminder Date:</Text>
-                <DateSelector 
+                <Text style={styles.label}>REMINDER DATE:</Text>
+                <DateSelector
                   options={dateOptions}
                   selected={selectedDateOption}
                   onSelect={handleDateOptionChange}
                 />
-                
+
                 {selectedDateOption === 'custom' && (
                   <View>
-                    <TouchableOpacity 
+                    <TouchableOpacity
                       onPress={() => setShowDatePicker(true)}
                       style={styles.timeInput}
                     >
@@ -663,16 +714,16 @@ const ManualEntry = ({ route }) => {
 
               {timingType === "custom" && (
                 <View style={styles.section}>
-                  <Text style={styles.label}>Custom Time:</Text>
-                  <TouchableOpacity 
+                  <Text style={styles.label}>SET REMINDER TIME</Text>
+                  <TouchableOpacity
                     onPress={() => setShowTimePicker(true)}
-                    style={styles.timeInput}
+                    style={[styles.timeInput, { backgroundColor: '#FFFFFF' }]}
                   >
                     <Text style={styles.timePickerText}>
                       {dayjs(time).format("h:mm A")}
                     </Text>
                   </TouchableOpacity>
-                  
+
                   {showTimePicker && (
                     <DateTimePicker
                       value={time}
@@ -686,7 +737,7 @@ const ManualEntry = ({ route }) => {
 
               {timingType === "meal" && (
                 <View style={styles.section}>
-                  <Text style={styles.label}>Meal Relation:</Text>
+                  <Text style={styles.label}>MEAL RELATION:</Text>
                   <ToggleButtonGroup
                     options={[
                       { label: 'Before Meal', value: 'before' },
@@ -701,40 +752,55 @@ const ManualEntry = ({ route }) => {
                 </View>
               )}
 
-              <Text style={styles.label}>Number of Pills</Text>
+              <Text style={styles.label}>NUMBER OF PILLS</Text>
               <View style={styles.pillCounter}>
-                <TouchableOpacity 
+                <TouchableOpacity
                   onPress={() => adjustPills(index, -1)}
                   style={styles.counterButton}
                 >
-                  <Text style={styles.buttonText}>-</Text>
+                  <LinearGradient
+                    colors={['#EC4899', '#F97316']}
+                    style={StyleSheet.absoluteFill}
+                    
+                  />
+                  <Text style={{ color: 'white', fontSize: 20 }}>-</Text>
                 </TouchableOpacity>
-                
+
                 <TextInput
                   value={schedule.pills}
                   onChangeText={text => updateSchedule(index, 'pills', text)}
                   style={styles.pillInput}
                   keyboardType="numeric"
                 />
-                
-                <TouchableOpacity 
+
+                <TouchableOpacity
                   onPress={() => adjustPills(index, 1)}
                   style={styles.counterButton}
                 >
-                  <Text style={styles.buttonText}>+</Text>
+                  <LinearGradient
+                    colors={['#EC4899', '#F97316']}
+                    style={StyleSheet.absoluteFill}
+                    
+                  />
+                  <Text style={{ color: 'white', fontSize: 20 }}>+</Text>
                 </TouchableOpacity>
               </View>
             </View>
           ))}
 
         <View style={styles.scheduleControls}>
-          <TouchableOpacity 
+          <TouchableOpacity
             style={styles.addButton}
             onPress={addSchedule}
           >
-            <Text style={styles.addButtonText}>
-              🗓️➕ Add New Schedule
-            </Text>
+            <LinearGradient
+              colors={['#EC4899', '#F97316']}
+              style={styles.gradientButton}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+            >
+              <Text style={styles.addButtonText}>🗓️➕ Add New Schedule</Text>
+            </LinearGradient>
           </TouchableOpacity>
           {schedules.length > 1 && (
             <Button
@@ -746,14 +812,22 @@ const ManualEntry = ({ route }) => {
         </View>
 
         <View style={{ alignItems: "center", marginTop: 20 }}>
-          {loading ? (
+        {loading ? (
             <ActivityIndicator size="large" color="#4CAF50" />
           ) : (
-            <Button
-              title="➕ Add Reminder"
+            <TouchableOpacity 
+              style={styles.saveButtonContainer}
               onPress={handleSave}
-              color="#4CAF50"
-            />
+            >
+              <LinearGradient
+                colors={['#EC4899', '#F97316']}
+                style={styles.saveButtonGradient}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+              >
+                <Text style={styles.saveButtonText}>💊 Save Reminder</Text>
+              </LinearGradient>
+            </TouchableOpacity>
           )}
         </View>
 
@@ -772,13 +846,79 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: 20,
-    backgroundColor: "#121212",
+    backgroundColor: "#FFF5F7",
+  },
+  gradientContainer: {
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 12,
+    alignSelf: 'center',
+    marginBottom: 10,
   },
   title: {
-    fontSize: 24,
-    fontWeight: "bold",
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: 'white',
+    textTransform: 'uppercase',
+    textAlign: 'center',
+    letterSpacing: 1,
+  },
+  medicineLabel: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#2C3E50',
+    marginBottom: 8,
+    fontFamily: 'Inter-SemiBold',
+    letterSpacing: 0.5,
+  },
+  saveButtonContainer: {
+    borderRadius: 30,
+    overflow: 'hidden',
+    marginTop: 20,
+    width: '100%',
+    elevation: 4,
+    shadowColor: '#EC4899',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+  },
+  saveButtonGradient: {
+    paddingVertical: 18,
+    paddingHorizontal: 32,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  saveButtonText: {
+    color: 'white',
+    fontSize: 18,
+    fontWeight: '700',
+    fontFamily: 'Inter-Bold',
+    letterSpacing: 0.8,
+    textShadowColor: 'rgba(0, 0, 0, 0.1)',
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 4,
+  },
+  selectedDateText: {
+    color: 'white', // White text for selected state
+    fontWeight: '500',
+    fontFamily: 'Inter-Medium',
+  },
+  medicineInput: {
+    height: 56,
+    borderColor: "#E94057",
+    borderWidth: 1.5,
     marginBottom: 20,
-    color: "#FFFFFF",
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    backgroundColor: "#FFFFFF",
+    color: "#2D3748",
+    fontSize: 16,
+    fontFamily: 'Inter-Medium',
+    elevation: 2,
+    shadowColor: '#E94057',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 6,
   },
   ocrNotice: {
     color: '#4CAF50',
@@ -797,17 +937,21 @@ const styles = StyleSheet.create({
   },
   input: {
     height: 50,
-    borderColor: "#4CAF50",
+    borderColor: "#FFB6C1",
     borderWidth: 1,
-    marginBottom: 10,
-    paddingLeft: 10,
-    borderRadius: 5,
-    backgroundColor: "#1E1E1E",
-    color: "#FFFFFF",
+    marginBottom: 15,
+    paddingHorizontal: 15,
+    borderRadius: 12,
+    backgroundColor: "#FFFFFF",
+    color: "#2C3E50",
+    fontSize: 16,
   },
   label: {
-    color: "#FFFFFF",
-    marginBottom: 5,
+    fontSize: 14,
+    color: '#888888',
+    marginBottom: 8,
+    fontWeight: '500',
+    fontFamily: 'Inter-Medium',
   },
   dateOptionContainer: {
     flexDirection: "row",
@@ -817,14 +961,24 @@ const styles = StyleSheet.create({
   dateOptionButton: {
     flex: 1,
     padding: 10,
-    backgroundColor: "#1E1E1E",
-    borderRadius: 5,
+    backgroundColor: "#F0F0F0", // Changed from #1E1E1E to light gray
+    borderRadius: 8, // Increased from 5
     alignItems: "center",
     marginHorizontal: 5,
+    overflow: 'hidden', // Added for gradient
   },
   dateOptionText: {
-    color: "#FFFFFF",
+    color: "#2C3E50",
     textAlign: "center",
+    fontWeight: '500',
+    fontSize: 14,
+    fontFamily: 'Inter-Medium',
+  },
+  gradientButton: {
+    paddingVertical: 14,
+    paddingHorizontal: 24,
+    alignItems: 'center',
+    borderRadius: 25,
   },
   timePickerContainer: {
     marginBottom: 20
@@ -834,10 +988,18 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     padding: 16
   },
+  timeInput: {
+    backgroundColor: '#F8F8F8', // Changed from #2D2D2D to light gray
+    borderRadius: 8,
+    padding: 12,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
+  },
   timePickerText: {
-    color: '#4CAF50',
-    fontSize: 18,
-    fontFamily: 'Inter-Bold',
+    color: '#2C3E50', // Changed from #4CAF50 to dark gray
+    fontSize: 16,
+    fontFamily: 'Inter-Medium',
     textAlign: 'center'
   },
   picker: {
@@ -848,21 +1010,28 @@ const styles = StyleSheet.create({
   timingContainer: {
     marginBottom: 20,
   },
-  
-    scheduleCard: {
-      backgroundColor: '#1E1E1E',
-      borderRadius: 10,
-      padding: 15,
-      marginVertical: 8,
-      borderWidth: 1,
-      borderColor: '#333',
-    },
-    scheduleTitle: {
-      color: '#4CAF50',
-      fontSize: 16,
-      fontWeight: '600',
-    },
-  
+
+  scheduleCard: {
+    backgroundColor: '#F8F9FA',
+    borderRadius: 12,
+    padding: 18,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#E8E8E8',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 6,
+    elevation: 2,
+  },
+  scheduleTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#2C3E50',
+    marginBottom: 12,
+    fontFamily: 'Inter-SemiBold',
+  },
+
   scheduleControls: {
     gap: 10,
     marginBottom: 20
@@ -873,25 +1042,30 @@ const styles = StyleSheet.create({
   pillCounter: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
-    marginBottom: 15
+    gap: 12,
+    marginBottom: 16,
   },
   counterButton: {
-    backgroundColor: '#4CAF50',
-    borderRadius: 20,
+    backgroundColor: '#E94057',
+    borderRadius: 25, // More rounded shape
     width: 40,
     height: 40,
     justifyContent: 'center',
-    alignItems: 'center'
+    alignItems: 'center',
+    elevation: 2,
+    overflow: 'hidden', // Added for gradient
   },
   pillInput: {
     flex: 1,
-    backgroundColor: '#2D2D2D',
-    color: 'white',
+    backgroundColor: '#FFFFFF',
     borderRadius: 8,
     padding: 12,
     fontSize: 16,
-    textAlign: 'center'
+    textAlign: 'center',
+    borderWidth: 1,
+    borderColor: '#E8E8E8',
+    color: '#2C3E50',
+    fontFamily: 'Inter-Medium',
   },
   buttonText: {
     color: 'white',
@@ -901,30 +1075,31 @@ const styles = StyleSheet.create({
   toggleContainer: {
     flexDirection: 'row',
     gap: 8,
-    flexWrap: 'wrap'
+    marginBottom: 16,borderRadius: 8,
   },
   toggleButton: {
     flex: 1,
     paddingVertical: 12,
-    paddingHorizontal: 16,
     borderRadius: 8,
-    backgroundColor: '#2D2D2D',
+    backgroundColor: '#FFFFFF',
     alignItems: 'center',
-    minWidth: 100
+    borderWidth: 1,
+    borderColor: '#F0F0F0',
   },
   selectedToggle: {
-    backgroundColor: '#4CAF50',
-    shadowColor: '#4CAF50',
+    borderWidth: 1,
+    shadowColor: '#EC4899',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.2,
-    shadowRadius: 4,
-    elevation: 3
+    shadowRadius: 6,
+    elevation: 3,
+    borderRadius: 8,
   },
   toggleButtonText: {
-    color: 'white',
-    fontSize: 16,
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#888888',
     fontFamily: 'Inter-SemiBold',
-    letterSpacing: 0.5
   },
   datetimeContainer: {
     flexDirection: 'row',
@@ -941,28 +1116,19 @@ const styles = StyleSheet.create({
   activeDateOption: {
     backgroundColor: '#4CAF50',
   },
-  timeInput: {
-    backgroundColor: '#2D2D2D',
-    borderRadius: 8,
-    padding: 12,
-    alignItems: 'center',
-  },
+  
   removeButton: {
     position: 'absolute',
     right: 10,
     top: 10,
-    backgroundColor: '#ff4444',
-    borderRadius: 15,
+    backgroundColor: '#E94057',
+    borderRadius: 20, // Changed to make perfectly circular
     width: 30,
     height: 30,
     justifyContent: 'center',
     alignItems: 'center',
     zIndex: 1,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 3,
-    elevation: 3,
+    overflow: 'hidden', // Added for gradient
   },
   removeButtonText: {
     color: '#FFFFFF',
@@ -971,27 +1137,19 @@ const styles = StyleSheet.create({
     marginTop: -2,
   },
   addButton: {
-    backgroundColor: '#4CAF50',
-    paddingVertical: 15,
-    paddingHorizontal: 25,
     borderRadius: 25,
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginVertical: 15,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
-    elevation: 5
+    overflow: 'hidden',
+    marginVertical: 10,
+    marginBottom: 20,
+    alignSelf: 'center',
+    width: '100%',
   },
   addButtonText: {
     color: 'white',
     fontSize: 16,
     fontWeight: '600',
-    marginLeft: 10,
     fontFamily: 'Inter-SemiBold',
-    letterSpacing: 0.5
+    letterSpacing: 0.8,
   },
   section: {
     marginBottom: 20
