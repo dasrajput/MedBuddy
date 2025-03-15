@@ -1,0 +1,14 @@
+
+1.  cd backend
+
+2. pip install waitress
+
+2.  waitress-serve --port=5000 --url-scheme=http api_server:app
+
+3.  curl -O https://pagekite.net/pk/pagekite.py
+
+4. provide email and activate
+
+5.  python pagekite.py 5000 mymedbuddy.pagekite.me
+
+
