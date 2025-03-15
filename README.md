@@ -59,19 +59,26 @@ MedBuddy is a mobile application designed to help users manage their meal schedu
    ```
 5. Use the Expo Go app to scan the QR code and run the app on your device.
 
+6. Please refer to backend folder and read its readme.
+
 ---
 
 ## Codebase Overview
 
 ### Directory Structure
 ```
-src/
+/
 ├── components/          # Reusable UI components
 ├── mealtime/            # Meal time management logic and screens
 ├── screens/             # App screens (Introduction, Home, etc.)
 ├── services/            # Firebase service functions
 ├── navigation/          # Navigation configuration
-└── utils/               # Utility functions
+├── utils/               # Utility functions
+└── backend/             # Backend server for OCR and image processing
+    ├── api_server.py    # Flask API server
+    ├── server.py        # Image processing logic
+    ├── uploads/         # Temporary storage for uploaded images
+    └── models/          # ML models for image detection
 ```
 
 ### Key Files
